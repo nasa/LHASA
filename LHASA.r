@@ -1,5 +1,5 @@
-# Landslide Hazard Assessment for Situational Awareness, version 1.0
-# By Thomas Stanley USRA/GESTAR 11/20/2018
+# Landslide Hazard Assessment for Situational Awareness, version 1.1
+# By Thomas Stanley USRA/GESTAR 2020-4-2
 # NASA Goddard Space Flight Center
 # Maps the potential for landslides by identifying which locations
 # exceed thresholds for a 7-day antecedent precipitation index
@@ -11,9 +11,9 @@ library(raster)
 setwd('C:/LHASA')
 
 # Open antecedent precipitation threshold file
-threshold <- crop(raster('ARI95.tif'),extent(-180,180,-50,50))
+threshold <- crop(raster('ARI95.tif'), extent(-180, 180, -60, 60))
 # Open the susceptibility map
-susceptible <- crop(raster('global.tif'),extent(-180,180,-50,50))
+susceptible <- crop(raster('global.tif'), extent(-180, 180, -60, 60))
 # List antecedent precipitation files
 files <- list.files(path='API', pattern='*.tif', full.names=TRUE)
 
