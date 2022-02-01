@@ -6,3 +6,6 @@ LHASA was created at Goddard Space Flight Center to identify the potential for l
 The R scripts here are written to be easily understood, executed, and modified by potential users of this research.
 
 Full operational code is available in python at https://github.com/vightel/ojo-bot. 
+
+## Update for version 2.0
+Although the software release process is still ongoing, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed at [gitlab](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://eis.mysmce.com/) project funded by NASA. 
