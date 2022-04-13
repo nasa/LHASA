@@ -7,7 +7,7 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
 
 ### Real-time data availability
-The latest predictions can be downloaded from https://maps.nccs.nasa.gov/download/landslides/nowcast. It can also be accessed as an ArcGIS web map at https://landslides.nasa.gov/viewer. NASA provides these data on a best-effort basis, typically four times each day, but with frequent server downtime. Users requiring a fully operational system are encouraged to clone this repository and 
+The latest predictions can be downloaded from https://maps.nccs.nasa.gov/download/landslides/nowcast. It can also be accessed as an ArcGIS web map at https://landslides.nasa.gov/viewer. NASA provides these data on a best-effort basis, typically four times each day, but with frequent server downtime. Users requiring a fully operational system are encouraged to clone this repository and run LHASA at the desired cadence.
 
 ### Data files
 
