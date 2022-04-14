@@ -1,4 +1,4 @@
-# Landslide Hazard Analysis for Situational Awareness
+# Landslide Hazard Assessment for Situational Awareness
 
 LHASA was created at Goddard Space Flight Center to identify the potential for rainfall-triggered landslides in real time. 
 
