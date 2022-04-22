@@ -11,9 +11,50 @@ The latest predictions can be downloaded from https://maps.nccs.nasa.gov/downloa
 
 ### Data files
 
-**We are currently obtaining a long-term url for sharing the data files necessary to run LHASA 2.0. In the meantime,these files are available upon request.**
+LHASA requires several large data files, but not all data may be needed by all users. The contents of [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) are required for the global landslide forecast. The contents of [exposure.zip]() are only used for the exposure analysis. The contents of [ref_data.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip) are only used for the global post-fire debris flow analysis. 
 
-LHASA requires several large data files, but not all data may be needed by all users. The contents of static.zip are required for the global landslide forecast. The contents of exposure.zip are only used for the exposure analysis. The contents of pfdf.zip are only used for the global post-fire debris flow analysis. 
+### Installation
+
+After cloning this repository, some setup is required prior to running LHASA. The following commands have been tested in a linux environment. Users of Windows or other systems may be required to modify each of these steps. 
+
+    # Set up python environment
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    sh Miniconda3-latest-Linux-x86_64.sh
+    conda env create -f lhasa.yml
+
+    # Set up directory structure
+    mkdir -p nrt/hazard/tif
+    mkdir -p nrt/exposure/csv
+    mkdir -p fcast/hazard/tif
+    mkdir -p fcast/exposure/csv
+    mkdir -p pfdf/firms
+
+    # Obtain required data files
+    wget https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip
+    unzip static.zip
+    rm static.zip
+
+    wget https://gpm.nasa.gov/sites/default/files/data/landslides/exposure.zip
+    unzip exposure.zip
+    rm exposure.zip
+
+    wget https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip
+    unzip ref_data.zip pfdf/
+    rm ref_data.zip
+
+    # Configure post-fire debris flow model
+    python pfdf/setup.py
+
+The post-fire debris flow module uses Google Earth Engine to access Landsat imagery. Please see the [README](https://github.com/nasa/LHASA/blob/master/pfdf/README.md) for more information. 
+
+### Routine operation
+
+Once a month, run the following commands to build the fires database needed to run the post-fire debris flow module:
+
+    conda activate lhasa
+    python /scripts/gee_export_all.py --filepath /pfdf --gee_username username
+
+Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
 
 ### Citation
 
@@ -30,6 +71,8 @@ The software released here enables the user to run the global landslide forecast
 ### Archive
 
 No long-term archive for predictions from LHASA 2.0 has been established.
+
+---
 
 ## LHASA 1.1
 
