@@ -22,6 +22,15 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     sh Miniconda3-latest-Linux-x86_64.sh
     conda env create -f lhasa.yml
 
+    # Manage Earthdata connection
+    # See for more info: https://disc.gsfc.nasa.gov/data-access
+    touch ~/.urs_cookies
+    touch ~/.netrc
+    echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> .netrc
+    touch ~/.dodsrc
+    echo "HTTP.NETRC=~/.netrc" >> .dodsrc
+    echo "HTTP.COOKIEJAR=~/.urs_cookies" >> .dodsrc
+    
     # Set up directory structure
     mkdir -p nrt/hazard/tif
     mkdir -p nrt/exposure/csv
