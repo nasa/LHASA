@@ -142,7 +142,7 @@ def get_SMAP(start_time, variables=['Geophysical_Data_sm_profile_wetness', 'Geop
     return smap.rename(y='lat', x='lon')
 
 def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
-        liquid=True, load=True, run='E', version='06B', 
+        liquid=True, load=True, run='E', version='06C', 
         latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
     """Opens IMERG data"""
     if end_time <= start_time:
@@ -356,8 +356,8 @@ if __name__ == "__main__":
         help='minimum longitude (WGS84)')
     parser.add_argument('-sv', '--smap_version', default='6030',
         help='SMAP L4 major and minor version, e.g. 6030')
-    parser.add_argument('-iv', '--imerg_version', default='06B',
-        help='IMERG version, e.g. 06B')
+    parser.add_argument('-iv', '--imerg_version', default='06C',
+        help='IMERG version, e.g. 06C')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', 
