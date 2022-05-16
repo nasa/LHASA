@@ -337,6 +337,8 @@ if __name__ == "__main__":
         help='assumed false if this option is not provided')
     parser.add_argument('--small', action="store_true", 
         help='shrinks output file size by masking where p_landslide < 0.01')
+    parser.add_argument('-t', '--threads', type=int,  default=4, 
+        help='Number of threads to use. Currently, this only affects XGBoost.')
     parser.add_argument('-f', '--format', default='nc4', 
         choices=['nc4', 'tif', 'nc4tif', 'nc', 'nctif'], 
         help='Output file formats. Both geotiff and netCDF can be chosen.'
@@ -391,7 +393,7 @@ if __name__ == "__main__":
     if args.lead > 2:
         warnings.warn('Only 2 days of forecast data are considered reliable.')
 
-    model = get_model(f'{path}/model.json')
+    model = get_model(f'{path}/model.json', args.threads)
 
     static_files = [f'{path}/static/Faults.nc4',
         f'{path}/static/Lithology.nc4',

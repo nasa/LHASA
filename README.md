@@ -22,6 +22,15 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     sh Miniconda3-latest-Linux-x86_64.sh
     conda env create -f lhasa.yml
 
+    # Manage Earthdata connection
+    # See for more info: https://disc.gsfc.nasa.gov/data-access
+    touch ~/.urs_cookies
+    touch ~/.netrc
+    echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> .netrc
+    touch ~/.dodsrc
+    echo "HTTP.NETRC=~/.netrc" >> .dodsrc
+    echo "HTTP.COOKIEJAR=~/.urs_cookies" >> .dodsrc
+    
     # Set up directory structure
     mkdir -p nrt/hazard/tif
     mkdir -p nrt/exposure/csv
@@ -30,16 +39,16 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     mkdir -p pfdf/firms
 
     # Obtain required data files
-    wget https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip
-    unzip static.zip
+    wget https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip &&
+    unzip static.zip &&
     rm static.zip
 
-    wget https://gpm.nasa.gov/sites/default/files/data/landslides/exposure.zip
-    unzip exposure.zip
+    wget https://gpm.nasa.gov/sites/default/files/data/landslides/exposure.zip &&
+    unzip exposure.zip &&
     rm exposure.zip
 
-    wget https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip
-    unzip ref_data.zip pfdf/
+    wget https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip &&
+    unzip ref_data.zip pfdf/ &&
     rm ref_data.zip
 
     # Configure post-fire debris flow model
