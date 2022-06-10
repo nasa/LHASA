@@ -289,22 +289,24 @@ def save_nc(data_set: xr.Dataset, file_path: str):
 
 def save_tiff(data_array, file_path):
     '''Saves prediction in geotiff format'''
+    
+    cell_size = 0.00833333333333333
     metadata = {
         'driver': 'GTiff', 
         'compress': 'lzw',
         'dtype': data_array.dtype, 
-        'nodata': NO_DATA, 
+        'nodata': -9999.0, 
         'width': data_array['lon'].size, 
         'height': data_array['lat'].size, 
         'count': 1, 
         'crs': 'EPSG:4326', 
         'transform': affine.Affine(
-            0.00833333333333333, 
+            cell_size, 
             0.0, 
-            -180.0, 
+            data_array.lon.min() - cell_size/2, 
             0.0, 
-            -0.00833333333333333, 
-            60.00006000333327), 
+            -cell_size, 
+            data_array.lat.max() + cell_size/2), 
         'tiled': False, 
         'interleave': 'band'
     }
