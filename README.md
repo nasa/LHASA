@@ -54,7 +54,7 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     rm exposure.zip
 
     wget https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip &&
-    unzip ref_data.zip pfdf/ &&
+    unzip ref_data.zip -d pfdf/ &&
     rm ref_data.zip
 
     # Configure post-fire debris flow model
@@ -85,7 +85,7 @@ The software released here enables the user to run the global landslide forecast
 
 ### Archive
 
-No long-term archive for predictions from LHASA 2.0 has been established.
+No long-term archive for predictions from LHASA 2.0 has been established. Users of Google Earth Engine can find an interim archive at *users/nbiswasuw/Hazard*. 
 
 ### Contributing
 
