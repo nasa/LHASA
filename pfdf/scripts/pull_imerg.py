@@ -62,18 +62,17 @@ def download_imerg(url):
     file_name = url[url.rfind('/')+1:len(url)]
     file_path = 'imerg/' + file_name
     if not os.path.exists(file_path):
-        request = requests.get(url, auth=(email, email))
+        request = requests.get(url)
         if request.ok:
-            try:
-                os.mkdir(output_path)
-            except FileExistsError:
-                pass
+            os.makedirs('imerg', exist_ok=True)
             with open(file_path, 'wb') as f:
                 f.write(request.content)
-        else: raise RuntimeError(str(request.status_code) + ': could not download ' + request.url)
+        else: 
+            raise RuntimeError(str(request.status_code) + ': could not download ' + request.url)
+    return file_name
 
-def get_latest_imerg_year(run='E', version='06C'):
-    """Finds the last year for which IMERG data is available"""
+def get_latest_imerg_year(run='E', version='06'):
+    """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
     url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml'
     with urlopen(url) as f:
         catalog = ET.parse(f).getroot()
@@ -140,12 +139,13 @@ def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp,
     """Opens IMERG data"""
     if end_time <= start_time:
         raise ValueError('End time must be later than start time')
-    days = pd.date_range(start_time, end_time, freq='D')
     if opendap:
-        files = [build_imerg_url(d, run=run, version=version, opendap=opendap) for d in days]
+        days = pd.date_range(start_time, end_time, freq='D')
+        files = [build_imerg_url(d, run=run, version=version) for d in days]
         imerg = xr.open_mfdataset(files, parallel=True)
     else:
-        urls = [build_imerg_url(d, run=run, version=version, opendap=opendap) for d in days]
+        half_hours = pd.date_range(start_time, end_time, freq='30min')
+        urls = [build_imerg_url(h, run=run, version=version, opendap=False) for h in half_hours]
         files = [download_imerg(u) for u in urls]
         imerg = xr.open_mfdataset(files, parallel=True)
     with warnings.catch_warnings():
