@@ -23,7 +23,6 @@ Functions and script for global post-fire debris flow model
 import logging
 import os
 import argparse
-from tokenize import group
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -31,7 +30,6 @@ import requests
 import xarray as xr
 from scipy import stats
 import xgboost as xgb
-from urllib.request import urlopen
 import xml.etree.ElementTree as ET
 import warnings
 
@@ -75,8 +73,7 @@ def download_imerg(url, path='imerg'):
 def get_latest_imerg_year(run='E', version='06'):
     """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
     url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml'
-    with urlopen(url) as f:
-        catalog = ET.parse(f).getroot()
+    catalog = ET.fromstring(requests.get(url).content)
     name_space = {'thredds': 'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'}
     for dataset in reversed(catalog.findall(
             'thredds:dataset/thredds:catalogRef', 
@@ -92,8 +89,7 @@ def get_latest_imerg_url(run='E', version='06'):
     year = get_latest_imerg_year(run=run, version=version)
     url = (f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/{year}'
         '/catalog.xml')
-    with urlopen(url) as f:
-        catalog = ET.parse(f).getroot()
+    catalog = ET.fromstring(requests.get(url).content)
     name_space = {
         'thredds': 
         'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'
@@ -239,11 +235,11 @@ if __name__ == "__main__":
         min(precipitation_end_time, imerg_late_end_time), 
         liquid=False, 
         load=True, 
-        run='L', opendap=False
-        # version=args.imerg_version, 
-        # opendap=args.opendap,
-        # latitudes=slice(args.south, args.north), 
-        # longitudes=slice(args.west, args.east)
+        run='L', 
+        version=args.imerg_version, 
+        opendap=args.opendap,
+        latitudes=slice(args.south, args.north), 
+        longitudes=slice(args.west, args.east)
     )
 
     if imerg_late_end_time < imerg_early_end_time:
