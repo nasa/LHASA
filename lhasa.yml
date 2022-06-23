@@ -2,6 +2,7 @@ name: lhasa
 channels:
   - conda-forge
   - defaults
+  - intel
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=1_gnu
@@ -22,10 +23,10 @@ dependencies:
   - bs4=4.10.0=hd8ed1ab_0
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.18.1=h7f98852_0
-  - ca-certificates=2021.10.8=ha878542_0
+  - ca-certificates=2022.6.15=ha878542_0
   - cachetools=4.2.4=pyhd8ed1ab_0
   - cairo=1.16.0=ha12eb4b_1010
-  - certifi=2021.10.8=py310hff52083_1
+  - certifi=2022.6.15=py310hff52083_0
   - cffi=1.15.0=py310h0fdd8cc_0
   - cfitsio=4.0.0=h9a35b8e_0
   - cftime=1.6.0=py310hde88566_0
@@ -41,7 +42,7 @@ dependencies:
   - dask=2022.2.1=pyhd8ed1ab_0
   - dask-core=2022.2.1=pyhd8ed1ab_0
   - distributed=2022.2.1=pyhd8ed1ab_0
-  - earthengine-api=0.1.302=pyhd8ed1ab_0
+  - earthengine-api=0.1.316=pyhd8ed1ab_0
   - expat=2.4.7=h27087fc_0
   - feedparser=6.0.8=pyhd8ed1ab_0
   - fiona=1.8.21=py310hfb73927_0
@@ -80,6 +81,7 @@ dependencies:
   - hdf5=1.12.1=nompi_h2386368_104
   - heapdict=1.0.1=py_0
   - httplib2=0.20.4=pyhd8ed1ab_0
+  - httplib2shim=0.0.3=pyh9f0ad1d_0
   - icu=69.1=h9c3ff4c_0
   - idna=3.3=pyhd8ed1ab_0
   - importlib-metadata=4.11.3=py310hff52083_0
