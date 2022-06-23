@@ -2,6 +2,9 @@
 
 LHASA was created at Goddard Space Flight Center to identify the potential for rainfall-triggered landslides in real time. 
 
+## What's new
+Added an option to choose between OpenDAP and file download servers for obtaining IMERG. OpenDAP enables reduced data volumes, both for transfer and storage; while file downloads from the PPS site may offer reduced latency and improved reliability. This capacity is controlled with the '-od' or '--opendap' argument in [lhasa.py](https://github.com/nasa/LHASA/blob/master/lhasa.py).
+
 ## LHASA 2.0
 
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
@@ -28,6 +31,9 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     touch ~/.netrc
     echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> .netrc
     touch ~/.dodsrc
+    # Manage PPS connection, which is only necessary for downloading IMERG HDF5
+    # See for more info: https://registration.pps.eosdis.nasa.gov/registration/
+    echo "machine jsimpsonhttps.pps.eosdis.nasa.gov login <email>  password <email>" >> .netrc
     echo "HTTP.NETRC=~/.netrc" >> .dodsrc
     echo "HTTP.COOKIEJAR=~/.urs_cookies" >> .dodsrc
     
@@ -80,6 +86,16 @@ The software released here enables the user to run the global landslide forecast
 ### Archive
 
 No long-term archive for predictions from LHASA 2.0 has been established.
+
+### Contributing
+
+Users are encouraged to participate in this project in various ways. 
+
+New landslide reports can be made through [Landslide Reporter](https://landslides.nasa.gov/reporter), which will enable NASA to better validate the model in the future. 
+
+Bug reports can be made through GitHub issues, while bug fixes and feature updates are welcome through pull requests. However, it's best to contact NASA prior to embarking on a major feature, as some improvements may lie outside the scope of this project. 
+
+Various forms of documentation are also needed. For example, a guide to installation of LHASA on Windows has already been requested. 
 
 ---
 
