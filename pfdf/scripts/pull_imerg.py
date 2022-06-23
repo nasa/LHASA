@@ -23,6 +23,7 @@ Functions and script for global post-fire debris flow model
 import logging
 import os
 import argparse
+from tokenize import group
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -57,19 +58,19 @@ def build_imerg_url(start_time, run='E', version='06C', opendap=True):
             )
     return url
 
-def download_imerg(url):
+def download_imerg(url, path='imerg'):
     """Downloads and saves IMERG file"""
     file_name = url[url.rfind('/')+1:len(url)]
-    file_path = 'imerg/' + file_name
+    file_path = os.path.join(path, file_name)
     if not os.path.exists(file_path):
         request = requests.get(url)
         if request.ok:
-            os.makedirs('imerg', exist_ok=True)
+            os.makedirs(path, exist_ok=True)
             with open(file_path, 'wb') as f:
                 f.write(request.content)
         else: 
             raise RuntimeError(str(request.status_code) + ': could not download ' + request.url)
-    return file_name
+    return file_path
 
 def get_latest_imerg_year(run='E', version='06'):
     """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
@@ -130,7 +131,7 @@ def get_latest_imerg_time(run='E', version='06C', opendap=True):
             t = now - pd.Timedelta(hours=i/2)
             url = build_imerg_url(t, run=run, version=version, opendap=False)
             if requests.get(url).ok: 
-                return t
+                return t.tz_localize(None)
         raise RuntimeError(f'No IMERG data available at {url}')
 
 def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
@@ -144,10 +145,10 @@ def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp,
         files = [build_imerg_url(d, run=run, version=version) for d in days]
         imerg = xr.open_mfdataset(files, parallel=True)
     else:
-        half_hours = pd.date_range(start_time, end_time, freq='30min')
+        half_hours = pd.date_range(start_time, end_time - pd.Timedelta(minutes=30), freq='30min')
         urls = [build_imerg_url(h, run=run, version=version, opendap=False) for h in half_hours]
         files = [download_imerg(u) for u in urls]
-        imerg = xr.open_mfdataset(files, parallel=True)
+        imerg = xr.open_mfdataset(files, group='Grid', parallel=True)
     with warnings.catch_warnings():
         warnings.filterwarnings(action='ignore', category=RuntimeWarning)
         warnings.filterwarnings(action='ignore', category=FutureWarning)
@@ -225,8 +226,10 @@ if __name__ == "__main__":
     ).load()
     logging.info('opened rainfall statistics files')
 
-    imerg_early_end_time = get_latest_imerg_time() + pd.Timedelta(minutes=30)
-    imerg_late_end_time = get_latest_imerg_time(run='L') + pd.Timedelta(minutes=30)
+    imerg_early_end_time = (get_latest_imerg_time(opendap=args.opendap) 
+                            + pd.Timedelta(minutes=30))
+    imerg_late_end_time = (get_latest_imerg_time(run='L', opendap=args.opendap) 
+                            + pd.Timedelta(minutes=30))
     # These might be different from the latest IMERG time stamp if specified from the CLI
     precipitation_end_time = imerg_early_end_time
     precipitation_start_time = precipitation_end_time - pd.Timedelta(hours=24)
@@ -236,10 +239,11 @@ if __name__ == "__main__":
         min(precipitation_end_time, imerg_late_end_time), 
         liquid=False, 
         load=True, 
-        run='L', 
-        version=args.imerg_version, 
-        latitudes=slice(args.south, args.north), 
-        longitudes=slice(args.west, args.east)
+        run='L', opendap=False
+        # version=args.imerg_version, 
+        # opendap=args.opendap,
+        # latitudes=slice(args.south, args.north), 
+        # longitudes=slice(args.west, args.east)
     )
 
     if imerg_late_end_time < imerg_early_end_time:
@@ -250,6 +254,7 @@ if __name__ == "__main__":
             load=True, 
             run='E', 
             version=args.imerg_version, 
+            opendap=args.opendap,
             latitudes=slice(args.south, args.north), 
             longitudes=slice(args.west, args.east)
         )
