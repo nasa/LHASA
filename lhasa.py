@@ -24,7 +24,6 @@ import logging
 import os.path
 import glob
 import argparse
-from tracemalloc import start
 import requests
 import numpy as np
 import xarray as xr
