@@ -285,19 +285,24 @@ def fill_array(prediction, mask, start_time):
         name='p_landslide')
     return filled_array
 
-def add_metadata(data_set: xr.Dataset):
-    '''Adds metadata for compliance with CF and GES-DISC standards'''
+def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
+    """Adds metadata for compliance with CF and GES-DISC standards"""
     data_set.attrs['title'] = 'Landslide Hazard Analysis for Situational Awareness'
     data_set.attrs['institution'] = 'NASA GSFC'
     data_set.attrs['source'] = 'LHASA V2.0.0a'
     data_set.attrs['history'] = f'{pd.Timestamp.now()} File written by XArray version {xr.__version__}'
-    data_set.attrs['references'] = ('Stanley, T. A., D. B. Kirschbaum, G. Benz'
-        ', et al. 2021. "Data-Driven Landslide Nowcasting at the Global Scale.'
-        '" Frontiers in Earth Science, 9: [10.3389/feart.2021.640043]; '
-        'Khan, S., D. Kirschbaum, and T. Stanley. 2021. "Investigating the '
-        'potential of a global precipitation forecast to inform landslide '
-        'prediction." Weather and Climate Extremes, 33: 100364 [10.1016/j.wace'
-        '.2021.100364]')
+    if run_mode == 'nrt': 
+        data_set.attrs['references'] = (
+            'Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. '
+            '"Data-Driven Landslide Nowcasting at the Global Scale." '
+            'Frontiers in Earth Science, 9: [10.3389/feart.2021.640043]'
+        )
+    else: 
+        data_set.attrs['references'] = (
+            'Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya and R. '
+            'Emberson. 2022. "Global Landslide Forecasting System for Hazard '
+            'Assessment and Situational Awareness" Frontiers in Earth Science'
+        )
     data_set.attrs['comment'] = 'LHASA identifies where landslides are most probable in near real time.'
     data_set.attrs['Conventions'] = 'CF-1.8'
     data_set.attrs['ShortName'] = 'LHASA'
@@ -322,9 +327,9 @@ def add_metadata(data_set: xr.Dataset):
     data_set['time'].attrs['standard_name'] = 'time'
     data_set['p_landslide'].attrs['long_name'] = 'Probability of Landslide Occurrence'
 
-def save_nc(data_set: xr.Dataset, file_path: str):
-    '''Saves prediction in netcdf format'''
-    add_metadata(data_set)
+def save_nc(data_set: xr.Dataset, file_path: str, run_mode='nrt'):
+    """Saves prediction in netcdf format"""
+    add_metadata(data_set, run_mode=run_mode)
     data_set.to_netcdf(file_path, encoding = {
         'p_landslide': {'zlib': True, '_FillValue': NO_DATA},
         'lat': {'zlib': False, '_FillValue': None},
@@ -332,7 +337,7 @@ def save_nc(data_set: xr.Dataset, file_path: str):
     })
 
 def save_tiff(data_array, file_path):
-    '''Saves prediction in geotiff format'''
+    """Saves prediction in geotiff format"""
     
     cell_size = 0.00833333333333333
     metadata = {
