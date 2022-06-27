@@ -59,18 +59,18 @@ def build_imerg_url(start_time, run='E', version='06C', opendap=True):
             )
     return url
 
-def download_imerg(url, path='imerg'):
+def download_imerg(url, path='./imerg'):
     """Downloads and saves IMERG file"""
     file_name = url[url.rfind('/')+1:len(url)]
     file_path = os.path.join(path, file_name)
     if not os.path.exists(file_path):
-        request = requests.get(url)
-        if request.ok:
+        r = requests.get(url)
+        if r.ok:
             os.makedirs(path, exist_ok=True)
             with open(file_path, 'wb') as f:
-                f.write(request.content)
+                f.write(r.content)
         else: 
-            raise RuntimeError(str(request.status_code) + ': could not download ' + request.url)
+            raise RuntimeError(f'{r.status_code}: could not download{r.url}')
     return file_path
 
 def get_latest_imerg_year(run='E', version='06'):
@@ -179,7 +179,7 @@ def get_SMAP(start_time, variables=['Geophysical_Data_sm_profile_wetness', 'Geop
     return smap.rename(y='lat', x='lon')
 
 def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
-        liquid=True, load=True, run='E', version='06C', opendap=True,
+        liquid=True, load=True, run='E', version='06C', opendap=True, cache_dir='./imerg',
         latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
     """Opens IMERG data"""
     if end_time <= start_time:
@@ -191,7 +191,7 @@ def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp,
     else:
         half_hours = pd.date_range(start_time, end_time - pd.Timedelta(minutes=30), freq='30min')
         urls = [build_imerg_url(h, run=run, version=version, opendap=False) for h in half_hours]
-        files = [download_imerg(u) for u in urls]
+        files = [download_imerg(u, path=cache_dir) for u in urls]
         imerg = xr.open_mfdataset(files, group='Grid', parallel=True)
     with warnings.catch_warnings():
         warnings.filterwarnings(action='ignore', category=RuntimeWarning)
@@ -378,7 +378,7 @@ def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
         cache_start_time = cache_end_time - pd.DateOffset(days=cache_days)
         df = pd.DataFrame({'file': files})
         df['time'] = df['file'].apply(lambda x: 
-            pd.Timestamp(x[67:81].replace('-S', ' ')))
+            pd.Timestamp(x[-40:-24].replace('-S', ' ')))
         excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
         excess.map(os.remove)
 
@@ -446,7 +446,10 @@ if __name__ == "__main__":
     if args.date:
         forecast_start_time = pd.Timestamp(args.date)
     else:
-        forecast_start_time = get_latest_imerg_time(run='E') + pd.Timedelta(minutes=30)
+        forecast_start_time = (
+            get_latest_imerg_time(run='E', opendap=args.opendap) 
+            + pd.Timedelta(minutes=30)
+        )
     if args.lead > 0:
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
         forecast_start_time = forecast_start_time.floor('H')
@@ -487,7 +490,10 @@ if __name__ == "__main__":
         ).load()
     logging.info('opened static variables')
 
-    imerg_late_end_time = get_latest_imerg_time(run='L') + pd.Timedelta(minutes=30)
+    imerg_late_end_time =(
+            get_latest_imerg_time(run='L', opendap=args.opendap) 
+            + pd.Timedelta(minutes=30)
+    )
     precipitation_start_date = forecast_start_time - pd.DateOffset(3)
     precipitation_end_date = forecast_start_time + pd.DateOffset(args.lead)
 
@@ -499,6 +505,7 @@ if __name__ == "__main__":
         run='L', 
         version=args.imerg_version, 
         opendap=args.opendap,
+        cache_dir=os.path.join(path, 'imerg'),
         latitudes=slice(args.south, args.north), 
         longitudes=slice(args.west, args.east)
     )
@@ -512,6 +519,7 @@ if __name__ == "__main__":
             run='E', 
             version=args.imerg_version, 
             opendap=args.opendap,
+            cache_dir=os.path.join(path, 'imerg'),
             latitudes=slice(args.south, args.north), 
             longitudes=slice(args.west, args.east)
         )
