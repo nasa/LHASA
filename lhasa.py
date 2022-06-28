@@ -369,6 +369,27 @@ def get_model(file_path, threads=1):
     model.set_param('nthread', threads)
     return model
 
+def expose(hazard: xr.DataArray, variables: xr.Dataset, 
+            thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
+            selection = ['population', 'road_length']):
+    """Totals exposed assets at flexible hazard thresholds"""
+    for k in thresholds.keys():
+        variables[f'{k}_haz'] = hazard > thresholds[k]
+        for v in selection:
+            v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}"
+            variables[v_name] = variables[v] * variables[f'{k}_haz']
+    variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
+    return variables.to_dataframe().dropna()
+
+def add_ratios(totals, thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
+                selection = ['population', 'road_length']):
+    """Calculates the fraction of each asset exposed in each county"""
+    for k in thresholds.keys():
+            totals[f'{k}_haz_f'] = totals[f'{k}_haz'] / totals['cells']
+            for v in selection:
+                v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}_f"
+                totals[v_name] = totals[v_name[:-2]] / totals[v]
+
 def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
     files = glob.glob(os.path.join(path, 'imerg', '*'))
     if cache_days < 1:
@@ -672,19 +693,12 @@ if __name__ == "__main__":
                     ' argument to overwrite it.')
             variable_files = [f'{path}/exposure/road_length.nc4', 
             f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
-            variables = xr.open_mfdataset(variable_files)
-            #TODO: reduce code redundancy
-            variables['l_haz'] = p_landslide > 0.1
-            variables['m_haz'] = p_landslide > 0.5
-            variables['h_haz'] = p_landslide > 0.9
-            variables['l_haz_pp'] = variables['population'] * variables['l_haz']
-            variables['m_haz_pp'] = variables['population'] * variables['m_haz']
-            variables['h_haz_pp'] = variables['population'] * variables['h_haz']
-            variables['l_haz_rd'] = variables['road_length'] * variables['l_haz']
-            variables['m_haz_rd'] = variables['road_length'] * variables['m_haz']
-            variables['h_haz_rd'] = variables['road_length'] * variables['h_haz']
-            variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
-            data_frame = variables.to_dataframe().dropna()
+            assets = xr.open_mfdataset(variable_files)
+            assets = assets.sel(
+                lat=slice(args.north, args.south), 
+                lon=slice(args.west, args.east)
+            )
+            data_frame = expose(p_landslide, assets)
             logging.info('opened exposure variables')
 
             totals = data_frame.groupby('gadm_fid').sum()
@@ -695,15 +709,7 @@ if __name__ == "__main__":
             constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
 
             totals = totals.merge(constant_totals, on='gadm_fid')
-            totals['l_haz_f'] = totals['l_haz'] / totals['cells']
-            totals['m_haz_f'] = totals['m_haz'] / totals['cells']
-            totals['h_haz_f'] = totals['h_haz'] / totals['cells']
-            totals['l_haz_pp_f'] = totals['l_haz_pp'] / totals['population']
-            totals['m_haz_pp_f'] = totals['m_haz_pp'] / totals['population']
-            totals['h_haz_pp_f'] = totals['h_haz_pp'] / totals['population']
-            totals['l_haz_rd_f'] = totals['l_haz_rd'] / totals['road_length']
-            totals['m_haz_rd_f'] = totals['m_haz_rd'] / totals['road_length']
-            totals['h_haz_rd_f'] = totals['h_haz_rd'] / totals['road_length']
+            add_ratios(totals)
             totals = totals.drop(columns=['population', 'road_length', 'cells'])
 
             admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
