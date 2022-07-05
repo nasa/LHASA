@@ -75,7 +75,7 @@ Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the d
 
 Khan, S., D. Kirschbaum, and T. Stanley. 2021. "Investigating the potential of a global precipitation forecast to inform landslide prediction." Weather and Climate Extremes, 33: 100364 [10.1016/j.wace.2021.100364](https://doi.org/10.1016/j.wace.2021.100364)
 
-Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya and R. Emberson. 2022. "Global Landslide Forecasting System for Hazard Assessment and Situational Awareness" Frontiers in Earth Science
+Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, and R. A. Emberson. 2022. "Global Landslide Forecasting System for Hazard Assessment and Situational Awareness." Frontiers in Earth Science, 10: [10.3389/feart.2022.878996](https://doi.org/10.3389/feart.2022.878)
 
 Emberson, R., D. Kirschbaum, and T. Stanley. 2020. "New global characterisation of landslide exposure." Natural Hazards and Earth System Sciences, 20 (12): 3413-3424 [10.5194/nhess-20-3413-2020](https://doi.org/10.5194/nhess-20-3413-2020)
 

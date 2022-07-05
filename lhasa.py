@@ -299,9 +299,10 @@ def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
         )
     else: 
         data_set.attrs['references'] = (
-            'Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya and R. '
-            'Emberson. 2022. "Global Landslide Forecasting System for Hazard '
-            'Assessment and Situational Awareness" Frontiers in Earth Science'
+            'Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, '
+            'and R. A. Emberson. 2022. "Global Landslide Forecasting System '
+            'for Hazard Assessment and Situational Awareness." Frontiers in '
+            'Earth Science, 10: [10.3389/feart.2022.878996]'
         )
     data_set.attrs['comment'] = 'LHASA identifies where landslides are most probable in near real time.'
     data_set.attrs['Conventions'] = 'CF-1.8'
