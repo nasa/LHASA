@@ -22,7 +22,9 @@ Functions and script for running LHASA
 
 import logging
 import os.path
+import glob
 import argparse
+import requests
 import numpy as np
 import xarray as xr
 import xgboost as xgb
@@ -35,18 +37,46 @@ import warnings
 
 NO_DATA = -9999.0
 OPENDAP_URL = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap'
+PPS_URL = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/'
 
-def build_imerg_url(start_time, run='E', version='06'):
-    '''Build string for GPM OpenDAP'''
-    product = f'GPM_3IMERGHH{run}.{version[:2]}'
-    return (f'{OPENDAP_URL}/ncml/aggregation/{product}/{start_time.year}/'
-        f'{product}_Aggregation_{start_time.year}{start_time.dayofyear:03}.ncml')
+def build_imerg_url(start_time, run='E', version='06C', opendap=True):
+    """Build URL to IMERG data"""
+    if opendap:
+        product = f'GPM_3IMERGHH{run}.{version[:2]}'
+        url = (f'{OPENDAP_URL}/ncml/aggregation/{product}/{start_time.year}/'
+            f'{product}_Aggregation_{start_time.year}{start_time.dayofyear:03}'
+            '.ncml')
+    else:
+        end = start_time + pd.Timedelta(minutes=29, seconds=59)
+        product = f'GPM_3IMERGHH{run}.{version}'
+        url = (f'{PPS_URL}{"early" if run=="E" else "late"}'
+            f'/{start_time.year}{start_time.month:02}/'
+            f'3B-HHR-{run}.MS.MRG.3IMERG.'
+            f'{start_time.year}{start_time.month:02}{start_time.day:02}-S'
+            f'{start_time.hour:02}{start_time.minute:02}{start_time.second:02}'
+            f'-E{end.hour:02}{end.minute:02}{end.second:02}.'
+            f'{start_time.hour*60+start_time.minute:04}.V{version}.RT-H5'
+            )
+    return url
+
+def download_imerg(url, path='./imerg'):
+    """Downloads and saves IMERG file"""
+    file_name = url[url.rfind('/')+1:len(url)]
+    file_path = os.path.join(path, file_name)
+    if not os.path.exists(file_path):
+        r = requests.get(url)
+        if r.ok:
+            os.makedirs(path, exist_ok=True)
+            with open(file_path, 'wb') as f:
+                f.write(r.content)
+        else: 
+            raise RuntimeError(f'{r.status_code}: could not download{r.url}')
+    return file_path
 
 def get_latest_imerg_year(run='E', version='06'):
-    """Finds the last year for which IMERG data is available"""
+    """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
     url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml'
-    with urlopen(url) as f:
-        catalog = ET.parse(f).getroot()
+    catalog = ET.fromstring(requests.get(url).content)
     name_space = {'thredds': 'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'}
     for dataset in reversed(catalog.findall(
             'thredds:dataset/thredds:catalogRef', 
@@ -57,12 +87,12 @@ def get_latest_imerg_year(run='E', version='06'):
     raise RuntimeError(f'cannot parse imerg catalog at {url}')
 
 def get_latest_imerg_url(run='E', version='06'):
-    """returns a path to the latest 30-minute IMERG data file"""
+    """Returns a path to the latest 30-minute IMERG data at GES-DISC OpenDAP"""
     version = str(version)[:2].zfill(2)
     year = get_latest_imerg_year(run=run, version=version)
-    url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/{year}/catalog.xml'
-    with urlopen(url) as f:
-        catalog = ET.parse(f).getroot()
+    url = (f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/{year}'
+        '/catalog.xml')
+    catalog = ET.fromstring(requests.get(url).content)
     name_space = {
         'thredds': 
         'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'
@@ -77,24 +107,31 @@ def get_latest_imerg_url(run='E', version='06'):
             xr.open_dataset(day_url)
         except (KeyError, OSError):
             continue
-        return f"{OPENDAP_URL}{dataset[2].attrib['urlPath']}"
-    raise RuntimeError(f'cannot parse imerg catalog at {url}')
+        return day_url
+    raise RuntimeError(f'Cannot parse imerg catalog at {url}')
 
-def get_latest_imerg_time(run='E', version='06'):
-    """
-    Returns a pandas time stamp representing the latest available data file
-    """
-    url = get_latest_imerg_url(run=run, version=version)
-    imerg = xr.open_dataset(f'{url}')
-    latest = imerg['time'].max()
-    t = pd.Timestamp(
-        year=int(latest.dt.year),
-        month=int(latest.dt.month),
-        day=int(latest.dt.day),
-        hour=int(latest.dt.hour),
-        minute=int(latest.dt.minute)
-    )
-    return t
+def get_latest_imerg_time(run='E', version='06C', opendap=True):
+    """Returns a pandas time stamp representing the latest available data"""
+    if opendap:
+        url = get_latest_imerg_url(run=run, version=version)
+        imerg = xr.open_dataset(f'{url}')
+        latest = imerg['time'].max()
+        t = pd.Timestamp(
+            year=int(latest.dt.year),
+            month=int(latest.dt.month),
+            day=int(latest.dt.day),
+            hour=int(latest.dt.hour),
+            minute=int(latest.dt.minute)
+        )
+        return t
+    else:
+        now = pd.Timestamp.now(tz='UTC').floor('30min')
+        for i in range(6, 48):
+            t = now - pd.Timedelta(hours=i/2)
+            url = build_imerg_url(t, run=run, version=version, opendap=False)
+            if requests.get(url).ok: 
+                return t.tz_localize(None)
+        raise RuntimeError(f'No IMERG data available at {url}')
 
 def get_valid_SMAP_time(start_time):
     day = start_time.strftime('%Y-%m-%d')
@@ -142,16 +179,23 @@ def get_SMAP(start_time, variables=['Geophysical_Data_sm_profile_wetness', 'Geop
     return smap.rename(y='lat', x='lon')
 
 def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
-        liquid=True, load=True, run='E', version='06B', 
+        liquid=True, load=True, run='E', version='06C', opendap=True, cache_dir='./imerg',
         latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
     """Opens IMERG data"""
     if end_time <= start_time:
         raise ValueError('End time must be later than start time')
-    days = pd.date_range(start_time, end_time, freq='D')
-    files = [build_imerg_url(d, run=run, version=version) for d in days]
-    imerg = xr.open_mfdataset(files, parallel=True)
+    if opendap:
+        days = pd.date_range(start_time, end_time, freq='D')
+        files = [build_imerg_url(d, run=run, version=version) for d in days]
+        imerg = xr.open_mfdataset(files, parallel=True)
+    else:
+        half_hours = pd.date_range(start_time, end_time - pd.Timedelta(minutes=30), freq='30min')
+        urls = [build_imerg_url(h, run=run, version=version, opendap=False) for h in half_hours]
+        files = [download_imerg(u, path=cache_dir) for u in urls]
+        imerg = xr.open_mfdataset(files, group='Grid', parallel=True)
     with warnings.catch_warnings():
         warnings.filterwarnings(action='ignore', category=RuntimeWarning)
+        warnings.filterwarnings(action='ignore', category=FutureWarning)
         imerg['time'] = imerg.indexes['time'].to_datetimeindex()
     imerg = imerg.sel(time=slice(start_time, end_time))
     imerg = imerg.sel(lat=latitudes, lon=longitudes)
@@ -241,24 +285,30 @@ def fill_array(prediction, mask, start_time):
         name='p_landslide')
     return filled_array
 
-def add_metadata(data_set: xr.Dataset):
-    '''Adds metadata for compliance with CF and GES-DISC standards'''
+def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
+    """Adds metadata for compliance with CF and GES-DISC standards"""
     data_set.attrs['title'] = 'Landslide Hazard Analysis for Situational Awareness'
     data_set.attrs['institution'] = 'NASA GSFC'
-    data_set.attrs['source'] = 'LHASA V2.0.0a'
+    data_set.attrs['source'] = 'LHASA V2.0.0b'
     data_set.attrs['history'] = f'{pd.Timestamp.now()} File written by XArray version {xr.__version__}'
-    data_set.attrs['references'] = ('Stanley, T. A., D. B. Kirschbaum, G. Benz'
-        ', et al. 2021. "Data-Driven Landslide Nowcasting at the Global Scale.'
-        '" Frontiers in Earth Science, 9: [10.3389/feart.2021.640043]; '
-        'Khan, S., D. Kirschbaum, and T. Stanley. 2021. "Investigating the '
-        'potential of a global precipitation forecast to inform landslide '
-        'prediction." Weather and Climate Extremes, 33: 100364 [10.1016/j.wace'
-        '.2021.100364]')
+    if run_mode == 'nrt': 
+        data_set.attrs['references'] = (
+            'Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. '
+            '"Data-Driven Landslide Nowcasting at the Global Scale." '
+            'Frontiers in Earth Science, 9: [10.3389/feart.2021.640043]'
+        )
+    else: 
+        data_set.attrs['references'] = (
+            'Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, '
+            'and R. A. Emberson. 2022. "Global Landslide Forecasting System '
+            'for Hazard Assessment and Situational Awareness." Frontiers in '
+            'Earth Science, 10: [10.3389/feart.2022.878996]'
+        )
     data_set.attrs['comment'] = 'LHASA identifies where landslides are most probable in near real time.'
     data_set.attrs['Conventions'] = 'CF-1.8'
     data_set.attrs['ShortName'] = 'LHASA'
     data_set.attrs['LongName'] = 'Landslide Hazard Analysis for Situational Awareness (LHASA)'
-    data_set.attrs['VersionID'] = '2.0.0a'
+    data_set.attrs['VersionID'] = '2.0.0b'
     data_set.attrs['Format'] = 'netCDF-4'
     data_set.attrs['DataSetQuality'] = 'NRT'
     data_set.attrs['IdentifierProductDOIAuthority'] = 'https://doi.org/'
@@ -278,9 +328,9 @@ def add_metadata(data_set: xr.Dataset):
     data_set['time'].attrs['standard_name'] = 'time'
     data_set['p_landslide'].attrs['long_name'] = 'Probability of Landslide Occurrence'
 
-def save_nc(data_set: xr.Dataset, file_path: str):
-    '''Saves prediction in netcdf format'''
-    add_metadata(data_set)
+def save_nc(data_set: xr.Dataset, file_path: str, run_mode='nrt'):
+    """Saves prediction in netcdf format"""
+    add_metadata(data_set, run_mode=run_mode)
     data_set.to_netcdf(file_path, encoding = {
         'p_landslide': {'zlib': True, '_FillValue': NO_DATA},
         'lat': {'zlib': False, '_FillValue': None},
@@ -288,23 +338,25 @@ def save_nc(data_set: xr.Dataset, file_path: str):
     })
 
 def save_tiff(data_array, file_path):
-    '''Saves prediction in geotiff format'''
+    """Saves prediction in geotiff format"""
+    
+    cell_size = 0.00833333333333333
     metadata = {
         'driver': 'GTiff', 
         'compress': 'lzw',
         'dtype': data_array.dtype, 
-        'nodata': NO_DATA, 
+        'nodata': -9999.0, 
         'width': data_array['lon'].size, 
         'height': data_array['lat'].size, 
         'count': 1, 
         'crs': 'EPSG:4326', 
         'transform': affine.Affine(
-            0.00833333333333333, 
+            cell_size, 
             0.0, 
-            -180.0, 
+            data_array['lon'].min() - cell_size/2, 
             0.0, 
-            -0.00833333333333333, 
-            60.00006000333327), 
+            -cell_size, 
+            data_array['lat'].max() + cell_size/2), 
         'tiled': False, 
         'interleave': 'band'
     }
@@ -318,10 +370,44 @@ def get_model(file_path, threads=1):
     model.set_param('nthread', threads)
     return model
 
+def expose(hazard: xr.DataArray, variables: xr.Dataset, 
+            thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
+            selection = ['population', 'road_length']):
+    """Totals exposed assets at flexible hazard thresholds"""
+    for k in thresholds.keys():
+        variables[f'{k}_haz'] = hazard > thresholds[k]
+        for v in selection:
+            v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}"
+            variables[v_name] = variables[v] * variables[f'{k}_haz']
+    variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
+    return variables.to_dataframe().dropna()
+
+def add_ratios(totals, thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
+                selection = ['population', 'road_length']):
+    """Calculates the fraction of each asset exposed in each county"""
+    for k in thresholds.keys():
+            totals[f'{k}_haz_f'] = totals[f'{k}_haz'] / totals['cells']
+            for v in selection:
+                v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}_f"
+                totals[v_name] = totals[v_name[:-2]] / totals[v]
+
+def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
+    files = glob.glob(os.path.join(path, 'imerg', '*'))
+    if cache_days < 1:
+        for f in files:
+            os.remove(f)
+    else:
+        cache_start_time = cache_end_time - pd.DateOffset(days=cache_days)
+        df = pd.DataFrame({'file': files})
+        df['time'] = df['file'].apply(lambda x: 
+            pd.Timestamp(x[-40:-24].replace('-S', ' ')))
+        excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
+        excess.map(os.remove)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='LHASA 2.0 global landslide forecast')
     parser.add_argument('-v', '--version', action='version', 
-        version='LHASA version 2.0.0a')
+        version='LHASA version 2.0.0b')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
         help='location of input files')
     parser.add_argument('-op', '--output_path', help='location of output files')
@@ -356,8 +442,12 @@ if __name__ == "__main__":
         help='minimum longitude (WGS84)')
     parser.add_argument('-sv', '--smap_version', default='6030',
         help='SMAP L4 major and minor version, e.g. 6030')
-    parser.add_argument('-iv', '--imerg_version', default='06B',
-        help='IMERG version, e.g. 06B')
+    parser.add_argument('-iv', '--imerg_version', default='06C',
+        help='IMERG version, e.g. 06C')
+    parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
+        help='Days of IMERG data to cache.')
+    parser.add_argument('-od', '--opendap', action='store_true',
+        help='Use OpenDAP to access IMERG; LHASA defaults to HDF5 download')
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', 
@@ -378,7 +468,10 @@ if __name__ == "__main__":
     if args.date:
         forecast_start_time = pd.Timestamp(args.date)
     else:
-        forecast_start_time = get_latest_imerg_time(run='E') + pd.Timedelta(minutes=30)
+        forecast_start_time = (
+            get_latest_imerg_time(run='E', opendap=args.opendap) 
+            + pd.Timedelta(minutes=30)
+        )
     if args.lead > 0:
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
         forecast_start_time = forecast_start_time.floor('H')
@@ -419,7 +512,10 @@ if __name__ == "__main__":
         ).load()
     logging.info('opened static variables')
 
-    imerg_late_end_time = get_latest_imerg_time(run='L') + pd.Timedelta(minutes=30)
+    imerg_late_end_time =(
+            get_latest_imerg_time(run='L', opendap=args.opendap) 
+            + pd.Timedelta(minutes=30)
+    )
     precipitation_start_date = forecast_start_time - pd.DateOffset(3)
     precipitation_end_date = forecast_start_time + pd.DateOffset(args.lead)
 
@@ -430,6 +526,8 @@ if __name__ == "__main__":
         load=False, 
         run='L', 
         version=args.imerg_version, 
+        opendap=args.opendap,
+        cache_dir=os.path.join(path, 'imerg'),
         latitudes=slice(args.south, args.north), 
         longitudes=slice(args.west, args.east)
     )
@@ -442,6 +540,8 @@ if __name__ == "__main__":
             load=False, 
             run='E', 
             version=args.imerg_version, 
+            opendap=args.opendap,
+            cache_dir=os.path.join(path, 'imerg'),
             latitudes=slice(args.south, args.north), 
             longitudes=slice(args.west, args.east)
         )
@@ -594,19 +694,12 @@ if __name__ == "__main__":
                     ' argument to overwrite it.')
             variable_files = [f'{path}/exposure/road_length.nc4', 
             f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
-            variables = xr.open_mfdataset(variable_files)
-            #TODO: reduce code redundancy
-            variables['l_haz'] = p_landslide > 0.1
-            variables['m_haz'] = p_landslide > 0.5
-            variables['h_haz'] = p_landslide > 0.9
-            variables['l_haz_pp'] = variables['population'] * variables['l_haz']
-            variables['m_haz_pp'] = variables['population'] * variables['m_haz']
-            variables['h_haz_pp'] = variables['population'] * variables['h_haz']
-            variables['l_haz_rd'] = variables['road_length'] * variables['l_haz']
-            variables['m_haz_rd'] = variables['road_length'] * variables['m_haz']
-            variables['h_haz_rd'] = variables['road_length'] * variables['h_haz']
-            variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
-            data_frame = variables.to_dataframe().dropna()
+            assets = xr.open_mfdataset(variable_files)
+            assets = assets.sel(
+                lat=slice(args.north, args.south), 
+                lon=slice(args.west, args.east)
+            )
+            data_frame = expose(p_landslide, assets)
             logging.info('opened exposure variables')
 
             totals = data_frame.groupby('gadm_fid').sum()
@@ -617,18 +710,16 @@ if __name__ == "__main__":
             constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
 
             totals = totals.merge(constant_totals, on='gadm_fid')
-            totals['l_haz_f'] = totals['l_haz'] / totals['cells']
-            totals['m_haz_f'] = totals['m_haz'] / totals['cells']
-            totals['h_haz_f'] = totals['h_haz'] / totals['cells']
-            totals['l_haz_pp_f'] = totals['l_haz_pp'] / totals['population']
-            totals['m_haz_pp_f'] = totals['m_haz_pp'] / totals['population']
-            totals['h_haz_pp_f'] = totals['h_haz_pp'] / totals['population']
-            totals['l_haz_rd_f'] = totals['l_haz_rd'] / totals['road_length']
-            totals['m_haz_rd_f'] = totals['m_haz_rd'] / totals['road_length']
-            totals['h_haz_rd_f'] = totals['h_haz_rd'] / totals['road_length']
+            add_ratios(totals)
             totals = totals.drop(columns=['population', 'road_length', 'cells'])
 
             admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
             admin_names = admin_names.merge(totals, on='gadm_fid', how='outer')
             admin_names.to_csv(csv_path)
             logging.info(f'saved {csv_path}')
+    
+    imerg_cleanup(
+        path=path, 
+        cache_end_time=forecast_start_time, 
+        cache_days=args.imerg_cache_days
+    )

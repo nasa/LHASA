@@ -2,6 +2,9 @@
 
 LHASA was created at Goddard Space Flight Center to identify the potential for rainfall-triggered landslides in real time. 
 
+## What's new
+2022-6-23 Added an option to choose between OpenDAP and file download servers for obtaining IMERG. OpenDAP enables reduced data volumes, both for transfer and storage; while file downloads from the PPS site may offer reduced latency and improved reliability. This capacity is controlled with the '-od' or '--opendap' argument in [lhasa.py](https://github.com/nasa/LHASA/blob/master/lhasa.py).
+
 ## LHASA 2.0
 
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
@@ -28,6 +31,9 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     touch ~/.netrc
     echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> .netrc
     touch ~/.dodsrc
+    # Manage PPS connection, which is only necessary for downloading IMERG HDF5
+    # See for more info: https://registration.pps.eosdis.nasa.gov/registration/
+    echo "machine jsimpsonhttps.pps.eosdis.nasa.gov login <email>  password <email>" >> .netrc
     echo "HTTP.NETRC=~/.netrc" >> .dodsrc
     echo "HTTP.COOKIEJAR=~/.urs_cookies" >> .dodsrc
     
@@ -48,7 +54,7 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     rm exposure.zip
 
     wget https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip &&
-    unzip ref_data.zip pfdf/ &&
+    unzip ref_data.zip -d pfdf/ &&
     rm ref_data.zip
 
     # Configure post-fire debris flow model
@@ -69,9 +75,11 @@ Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the d
 
 Khan, S., D. Kirschbaum, and T. Stanley. 2021. "Investigating the potential of a global precipitation forecast to inform landslide prediction." Weather and Climate Extremes, 33: 100364 [10.1016/j.wace.2021.100364](https://doi.org/10.1016/j.wace.2021.100364)
 
-Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide Nowcasting at the Global Scale." Frontiers in Earth Science, 9: [10.3389/feart.2021.640043](https://doi.org/10.3389/feart.2021.640043)
+Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, and R. A. Emberson. 2022. "Global Landslide Forecasting System for Hazard Assessment and Situational Awareness." Frontiers in Earth Science, 10: [10.3389/feart.2022.878996](https://doi.org/10.3389/feart.2022.878)
 
 Emberson, R., D. Kirschbaum, and T. Stanley. 2020. "New global characterisation of landslide exposure." Natural Hazards and Earth System Sciences, 20 (12): 3413-3424 [10.5194/nhess-20-3413-2020](https://doi.org/10.5194/nhess-20-3413-2020)
+
+Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide Nowcasting at the Global Scale." Frontiers in Earth Science, 9: [10.3389/feart.2021.640043](https://doi.org/10.3389/feart.2021.640043)
 
 ### Model training
 
@@ -79,7 +87,17 @@ The software released here enables the user to run the global landslide forecast
 
 ### Archive
 
-No long-term archive for predictions from LHASA 2.0 has been established.
+No long-term archive for predictions from LHASA 2.0 has been established. Users of Google Earth Engine can find an interim archive at *users/nbiswasuw/Hazard*. 
+
+### Contributing
+
+Users are encouraged to participate in this project in various ways. 
+
+New landslide reports can be made through [Landslide Reporter](https://landslides.nasa.gov/reporter), which will enable NASA to better validate the model in the future. 
+
+Bug reports can be made through GitHub issues, while bug fixes and feature updates are welcome through pull requests. However, it's best to contact NASA prior to embarking on a major feature, as some improvements may lie outside the scope of this project. 
+
+Various forms of documentation are also needed. For example, a guide to installation of LHASA on Windows has already been requested. 
 
 ---
 

@@ -1,6 +1,6 @@
 conda activate lhasa
 
-python lhasa.py --small
+python lhasa.py --small -icd 2 -t 4
 
 python pfdf/scripts/request.py --filepath pfdf \
   --firms_path pfdf/firms
