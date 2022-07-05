@@ -289,7 +289,7 @@ def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     """Adds metadata for compliance with CF and GES-DISC standards"""
     data_set.attrs['title'] = 'Landslide Hazard Analysis for Situational Awareness'
     data_set.attrs['institution'] = 'NASA GSFC'
-    data_set.attrs['source'] = 'LHASA V2.0.0a'
+    data_set.attrs['source'] = 'LHASA V2.0.0b'
     data_set.attrs['history'] = f'{pd.Timestamp.now()} File written by XArray version {xr.__version__}'
     if run_mode == 'nrt': 
         data_set.attrs['references'] = (
@@ -308,7 +308,7 @@ def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     data_set.attrs['Conventions'] = 'CF-1.8'
     data_set.attrs['ShortName'] = 'LHASA'
     data_set.attrs['LongName'] = 'Landslide Hazard Analysis for Situational Awareness (LHASA)'
-    data_set.attrs['VersionID'] = '2.0.0a'
+    data_set.attrs['VersionID'] = '2.0.0b'
     data_set.attrs['Format'] = 'netCDF-4'
     data_set.attrs['DataSetQuality'] = 'NRT'
     data_set.attrs['IdentifierProductDOIAuthority'] = 'https://doi.org/'
@@ -407,7 +407,7 @@ def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='LHASA 2.0 global landslide forecast')
     parser.add_argument('-v', '--version', action='version', 
-        version='LHASA version 2.0.0a')
+        version='LHASA version 2.0.0b')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
         help='location of input files')
     parser.add_argument('-op', '--output_path', help='location of output files')

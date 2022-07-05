@@ -186,7 +186,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='LHASA 2.0 global post-fire debris flow model')
     parser.add_argument('-v', '--version', action='version', 
-        version='LHASA version 2.0.0a')
+        version='LHASA version 2.0.0b')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
         help='location of input files')
     parser.add_argument('-op', '--output_path', help='location of output files')
