@@ -399,13 +399,14 @@ def expose(hazard: xr.DataArray, variables: xr.Dataset,
             thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
             selection = ['population', 'road_length']):
     """Totals exposed assets at flexible hazard thresholds"""
+    variables = variables.copy() # To avoid mutating the assets dataset
     for k in thresholds.keys():
         variables[f'{k}_haz'] = hazard > thresholds[k]
         for v in selection:
             v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}"
             variables[v_name] = variables[v] * variables[f'{k}_haz']
     variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
-    return variables.to_dataframe().dropna()
+    return variables
 
 def add_ratios(totals, thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
                 selection = ['population', 'road_length']):
@@ -550,6 +551,19 @@ if __name__ == "__main__":
             lat=slice(args.south, args.north), 
             lon=slice(args.west, args.east)
         ).load()
+    if args.exposure:
+        exposure_files = [f'{path}/exposure/road_length.nc4', 
+        f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
+        assets = xr.open_mfdataset(exposure_files)
+        assets = assets.sel(
+            lat=slice(args.north, args.south), 
+            lon=slice(args.west, args.east)
+        )
+        constant_totals = pd.read_csv(f'{path}/exposure/totals.csv', index_col='gadm_fid')
+        # Apply a minimum to avoid divide by zero errors
+        constant_totals['road_length'] = np.maximum(constant_totals['road_length'], 1e-10)
+        constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
+        admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
     logging.info('opened static variables')
 
     imerg_late_end_time =(
@@ -741,28 +755,16 @@ if __name__ == "__main__":
             if os.path.exists(csv_path) and not args.overwrite:
                 raise FileExistsError(f'{csv_path} exists. Use the --overwrite'
                     ' argument to overwrite it.')
-            variable_files = [f'{path}/exposure/road_length.nc4', 
-            f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
-            assets = xr.open_mfdataset(variable_files)
-            assets = assets.sel(
-                lat=slice(args.north, args.south), 
-                lon=slice(args.west, args.east)
-            )
-            data_frame = expose(p_landslide, assets)
-            logging.info('opened exposure variables')
-
+            # The exposure analysis uses a lot of memory
+            del dynamic_variables, transposed, regridded, variables
+            del masked_values, inputs, prediction
+            exposed = expose(p_landslide, assets)
+            data_frame = exposed.to_dataframe().dropna()
             totals = data_frame.groupby('gadm_fid').sum()
-
-            constant_totals = pd.read_csv(f'{path}/exposure/totals.csv', index_col='gadm_fid')
-            # Apply a minimum to avoid divide by zero errors
-            constant_totals['road_length'] = np.maximum(constant_totals['road_length'], 1e-10)
-            constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
-
             totals = totals.merge(constant_totals, on='gadm_fid')
             add_ratios(totals)
             totals = totals.drop(columns=['population', 'road_length', 'cells'])
-
-            admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
+            logging.info('Calculated exposure levels by county')
             admin_names = admin_names.merge(totals, on='gadm_fid', how='outer')
             admin_names.to_csv(csv_path)
             logging.info(f'saved {csv_path}')
