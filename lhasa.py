@@ -439,7 +439,7 @@ def smap_cleanup(path: str, cache_days=0, cache_end_time=None):
         cache_start_time = cache_end_time - pd.DateOffset(days=cache_days)
         df = pd.DataFrame({'file': files})
         df['time'] = df['file'].apply(lambda x: 
-            pd.Timestamp(x[-40:-24].replace('-S', ' ')))
+            pd.Timestamp(x[-29:-14].replace('-S', ' ')))
         excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
         excess.map(os.remove)
 
