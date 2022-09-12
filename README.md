@@ -46,6 +46,8 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     mkdir -p fcast/hazard/tif
     mkdir -p fcast/exposure/csv
     mkdir -p pfdf/firms
+    mkdir imerg
+    mkdir smap
 
     # Obtain required data files
     wget https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip &&
