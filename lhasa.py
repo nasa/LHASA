@@ -765,8 +765,8 @@ if __name__ == "__main__":
             add_ratios(totals)
             totals = totals.drop(columns=['population', 'road_length', 'cells'])
             logging.info('Calculated exposure levels by county')
-            admin_names = admin_names.merge(totals, on='gadm_fid', how='outer')
-            admin_names.to_csv(csv_path)
+            named = admin_names.merge(totals, on='gadm_fid', how='outer')
+            named.to_csv(csv_path)
             logging.info(f'saved {csv_path}')
     
     imerg_cleanup(
