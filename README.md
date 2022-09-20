@@ -3,6 +3,9 @@
 LHASA was created at Goddard Space Flight Center to identify the potential for rainfall-triggered landslides in real time. 
 
 ## What's new
+
+2022-9-8 Added an option to use the https server to obtain SMAP, due to an outage with the OpenDAP server. This option is likely to increase the time required to access the SMAP data, as many variables are not used by LHASA. 
+
 2022-6-23 Added an option to choose between OpenDAP and file download servers for obtaining IMERG. OpenDAP enables reduced data volumes, both for transfer and storage; while file downloads from the PPS site may offer reduced latency and improved reliability. This capacity is controlled with the '-od' or '--opendap' argument in [lhasa.py](https://github.com/nasa/LHASA/blob/master/lhasa.py).
 
 ## LHASA 2.0
@@ -43,6 +46,8 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     mkdir -p fcast/hazard/tif
     mkdir -p fcast/exposure/csv
     mkdir -p pfdf/firms
+    mkdir imerg
+    mkdir smap
 
     # Obtain required data files
     wget https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip &&
@@ -72,8 +77,6 @@ Once a month, run the following commands to build the fires database needed to r
 Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
 
 ### Citation
-
-Khan, S., D. Kirschbaum, and T. Stanley. 2021. "Investigating the potential of a global precipitation forecast to inform landslide prediction." Weather and Climate Extremes, 33: 100364 [10.1016/j.wace.2021.100364](https://doi.org/10.1016/j.wace.2021.100364)
 
 Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, and R. A. Emberson. 2022. "Global Landslide Forecasting System for Hazard Assessment and Situational Awareness." Frontiers in Earth Science, 10: [10.3389/feart.2022.878996](https://doi.org/10.3389/feart.2022.878)
 

@@ -31,7 +31,6 @@ import xgboost as xgb
 import pandas as pd
 import affine
 import rasterio
-from urllib.request import urlopen
 import xml.etree.ElementTree as ET
 import warnings
 
@@ -48,7 +47,6 @@ def build_imerg_url(start_time, run='E', version='06C', opendap=True):
             '.ncml')
     else:
         end = start_time + pd.Timedelta(minutes=29, seconds=59)
-        product = f'GPM_3IMERGHH{run}.{version}'
         url = (f'{PPS_URL}{"early" if run=="E" else "late"}'
             f'/{start_time.year}{start_time.month:02}/'
             f'3B-HHR-{run}.MS.MRG.3IMERG.'
@@ -138,39 +136,66 @@ def get_valid_SMAP_time(start_time):
     hours = pd.date_range(day +" 01:30", periods=9, freq="3h")
     return hours[hours.get_loc(start_time, method = 'nearest')]
 
-def build_SMAP_url(start_time, version='6', minor_version='030'):
-    """Build string for SMAP OpenDAP server at NSIDC
-    For more information, see https://nsidc.org/data/smap/data_versions#L4"""
-    return (f'https://n5eil02u.ecs.nsidc.org/opendap/SMAP/SPL4SMGP.'
-        f'{int(version):03}/{start_time.year}.{start_time.month:02}.'
-        f'{start_time.day:02}/SMAP_L4_SM_gph_'
-        f'{start_time.year}{start_time.month:02}{start_time.day:02}'
-        f'T{start_time.hour:02}{start_time.minute:02}{start_time.second:02}'
-        f'_Vv{version}{minor_version}_001.h5')
+def build_smap_url(t, version='6', minor_version='030', opendap=True):
+    """Build URL to SMAP data"""
+    od_server = 'https://n5eil02u.ecs.nsidc.org/opendap/'
+    http_server = 'https://n5eil01u.ecs.nsidc.org/'
+    url = (
+        f'{od_server if opendap else http_server}SMAP/'
+        f'SPL4SMGP.{int(version):03}/{t.year}.{t.month:02}.{t.day:02}/'
+        f'SMAP_L4_SM_gph_{t.year}{t.month:02}{t.day:02}'
+        f'T{t.hour:02}{t.minute:02}00_Vv{version}{minor_version}_001.h5'
+    )
+    return url
 
-def get_SMAP(start_time, variables=['Geophysical_Data_sm_profile_wetness', 'Geophysical_Data_snow_mass'], 
-        load=True, version='6', minor_version='030', latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
+def download_smap(url, path='./smap'):
+    """Downloads and saves SMAP file"""
+    file_name = url[url.rfind('/')+1:len(url)]
+    file_path = os.path.join(path, file_name)
+    if not os.path.exists(file_path):
+        r = requests.get(url)
+        if r.ok:
+            os.makedirs(path, exist_ok=True)
+            with open(file_path, 'wb') as f:
+                f.write(r.content)
+        else: 
+            raise RuntimeError(f'{r.status_code}: could not download{r.url}')
+    return file_path
+
+def get_smap(
+        start_time, variables=['sm_profile_wetness', 'snow_mass'], 
+        load=True, version='6', minor_version='030', opendap=True, 
+        latitudes=slice(-60, 60), longitudes=slice(-180, 180)
+    ):
     """returns an xarray dataset representing 1 SMAP file"""
     start_time = get_valid_SMAP_time(start_time)
-    url = build_SMAP_url(start_time, version, minor_version)
-    try:
-        smap = xr.open_dataset(url)
-    except:
-        logging.warning('SMAP data is not available for'
-            ' the specified time and version.')
-        for i in range(1, 9):
-            start_time = start_time - pd.Timedelta(hours=i*3)
-            url = build_SMAP_url(start_time, version, minor_version)
-            #TODO check for availability without triggering warnings
-            try: 
-                smap = xr.open_dataset(url)
-            except (KeyError, OSError):
-                continue
-            break
-        logging.warning(f'Using latest available SMAP data: {start_time}')
-    # Convert to WGS84
-    smap['x'] = smap.cell_lon[1,]
-    smap['y'] = smap.cell_lat[:,1]
+    url = build_smap_url(start_time, version, minor_version, opendap=opendap)
+    if opendap:
+        try:
+            smap = xr.open_dataset(url)
+        except:
+            logging.warning('SMAP data is not available for'
+                ' the specified time and version.')
+            for i in range(1, 9):
+                start_time = start_time - pd.Timedelta(hours=i*3)
+                url = build_smap_url(start_time, version, minor_version, opendap=opendap)
+                #TODO check for availability without triggering warnings
+                try: 
+                    smap = xr.open_dataset(url)
+                except (KeyError, OSError):
+                    continue
+                break
+            logging.warning(f'Using latest available SMAP data: {start_time}')
+        # Convert to WGS84
+        smap['x'] = smap.cell_lon[0,]
+        smap['y'] = smap.cell_lat[:, 0]
+    else:
+        file_path = download_smap(url)
+        smap_grid = xr.open_dataset(file_path)
+        smap = xr.open_dataset(file_path, group='Geophysical_Data')
+        # Convert to WGS84
+        smap['x'] = smap_grid.cell_lon[0,].values
+        smap['y'] = smap_grid.cell_lat[:, 0].values
     smap = smap.sortby('y')
     smap = smap.sel(y=latitudes, x=longitudes)
     smap = smap[variables]
@@ -374,13 +399,14 @@ def expose(hazard: xr.DataArray, variables: xr.Dataset,
             thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
             selection = ['population', 'road_length']):
     """Totals exposed assets at flexible hazard thresholds"""
+    variables = variables.copy() # To avoid mutating the assets dataset
     for k in thresholds.keys():
         variables[f'{k}_haz'] = hazard > thresholds[k]
         for v in selection:
             v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}"
             variables[v_name] = variables[v] * variables[f'{k}_haz']
     variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
-    return variables.to_dataframe().dropna()
+    return variables
 
 def add_ratios(totals, thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
                 selection = ['population', 'road_length']):
@@ -401,6 +427,19 @@ def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
         df = pd.DataFrame({'file': files})
         df['time'] = df['file'].apply(lambda x: 
             pd.Timestamp(x[-40:-24].replace('-S', ' ')))
+        excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
+        excess.map(os.remove)
+
+def smap_cleanup(path: str, cache_days=0, cache_end_time=None):
+    files = glob.glob(os.path.join(path, 'smap', '*'))
+    if cache_days < 1:
+        for f in files:
+            os.remove(f)
+    else:
+        cache_start_time = cache_end_time - pd.DateOffset(days=cache_days)
+        df = pd.DataFrame({'file': files})
+        df['time'] = df['file'].apply(lambda x: 
+            pd.Timestamp(x[-29:-14].replace('-S', ' ')))
         excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
         excess.map(os.remove)
 
@@ -446,6 +485,8 @@ if __name__ == "__main__":
         help='IMERG version, e.g. 06C')
     parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
         help='Days of IMERG data to cache.')
+    parser.add_argument('-scd', '--smap_cache_days', type=int,  default=0, 
+        help='Days of SMAP data to cache.')
     parser.add_argument('-od', '--opendap', action='store_true',
         help='Use OpenDAP to access IMERG; LHASA defaults to HDF5 download')
     args = parser.parse_args()
@@ -510,6 +551,19 @@ if __name__ == "__main__":
             lat=slice(args.south, args.north), 
             lon=slice(args.west, args.east)
         ).load()
+    if args.exposure:
+        exposure_files = [f'{path}/exposure/road_length.nc4', 
+        f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
+        assets = xr.open_mfdataset(exposure_files)
+        assets = assets.sel(
+            lat=slice(args.north, args.south), 
+            lon=slice(args.west, args.east)
+        )
+        constant_totals = pd.read_csv(f'{path}/exposure/totals.csv', index_col='gadm_fid')
+        # Apply a minimum to avoid divide by zero errors
+        constant_totals['road_length'] = np.maximum(constant_totals['road_length'], 1e-10)
+        constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
+        admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
     logging.info('opened static variables')
 
     imerg_late_end_time =(
@@ -624,15 +678,24 @@ if __name__ == "__main__":
         rain = d
         if run_mode == "nrt": 
             rain = rain.interp_like(p99, method='nearest') / p99
-            smap = get_SMAP(
+            if args.opendap:
+                smap_variables=[
+                    'Geophysical_Data_sm_profile_wetness', 
+                    'Geophysical_Data_snow_mass'
+                ]
+            else:
+                smap_variables=['sm_profile_wetness', 'snow_mass']
+            smap = get_smap(
                 start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
+                variables=smap_variables, 
                 version=args.smap_version[0], 
                 minor_version=args.smap_version[1:4], 
+                opendap=args.opendap,
                 latitudes=slice(args.south, args.north), 
                 longitudes=slice(args.west, args.east)
             )
-            moisture = smap['Geophysical_Data_sm_profile_wetness']
-            snow = smap['Geophysical_Data_snow_mass']
+            moisture = smap[smap_variables[0]]
+            snow = smap[smap_variables[1]]
             # Match variable names in GEOS
             moisture.name = 'gwetprof'
             snow.name = 'snomas'
@@ -692,34 +755,28 @@ if __name__ == "__main__":
             if os.path.exists(csv_path) and not args.overwrite:
                 raise FileExistsError(f'{csv_path} exists. Use the --overwrite'
                     ' argument to overwrite it.')
-            variable_files = [f'{path}/exposure/road_length.nc4', 
-            f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
-            assets = xr.open_mfdataset(variable_files)
-            assets = assets.sel(
-                lat=slice(args.north, args.south), 
-                lon=slice(args.west, args.east)
-            )
-            data_frame = expose(p_landslide, assets)
-            logging.info('opened exposure variables')
-
+            # The exposure analysis uses a lot of memory
+            del dynamic_variables, transposed, regridded, variables
+            del masked_values, inputs, prediction
+            exposed = expose(p_landslide, assets)
+            data_frame = exposed.to_dataframe().dropna()
             totals = data_frame.groupby('gadm_fid').sum()
-
-            constant_totals = pd.read_csv(f'{path}/exposure/totals.csv', index_col='gadm_fid')
-            # Apply a minimum to avoid divide by zero errors
-            constant_totals['road_length'] = np.maximum(constant_totals['road_length'], 1e-10)
-            constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
-
             totals = totals.merge(constant_totals, on='gadm_fid')
             add_ratios(totals)
             totals = totals.drop(columns=['population', 'road_length', 'cells'])
-
-            admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
-            admin_names = admin_names.merge(totals, on='gadm_fid', how='outer')
-            admin_names.to_csv(csv_path)
+            logging.info('Calculated exposure levels by county')
+            named = admin_names.merge(totals, on='gadm_fid', how='outer')
+            named.to_csv(csv_path)
             logging.info(f'saved {csv_path}')
     
     imerg_cleanup(
         path=path, 
         cache_end_time=forecast_start_time, 
         cache_days=args.imerg_cache_days
+    )
+
+    smap_cleanup(
+        path=path, 
+        cache_end_time=precipitation_start_date, 
+        cache_days=args.smap_cache_days
     )
