@@ -78,6 +78,8 @@ Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the d
 
 ### Citation
 
+Orland, E., D. Kirschbaum, and T. Stanley. 2022. "A Scalable Framework for Post Fire Debris Flow Hazard Assessment Using Satellite Precipitation Data." Geophysical Research Letters, 49 (18): [10.1029/2022gl099850](https://doi.org/10.1029/2022GL099850)
+
 Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, and R. A. Emberson. 2022. "Global Landslide Forecasting System for Hazard Assessment and Situational Awareness." Frontiers in Earth Science, 10: [10.3389/feart.2022.878996](https://doi.org/10.3389/feart.2022.878)
 
 Emberson, R., D. Kirschbaum, and T. Stanley. 2020. "New global characterisation of landslide exposure." Natural Hazards and Earth System Sciences, 20 (12): 3413-3424 [10.5194/nhess-20-3413-2020](https://doi.org/10.5194/nhess-20-3413-2020)
