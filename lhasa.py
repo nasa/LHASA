@@ -176,21 +176,34 @@ def get_smap(
         except:
             logging.warning('SMAP data is not available for'
                 ' the specified time and version.')
-            for i in range(1, 9):
-                start_time = start_time - pd.Timedelta(hours=i*3)
-                url = build_smap_url(start_time, version, minor_version, opendap=opendap)
+            for i in range(1, 17):
+                earlier_time = start_time - pd.Timedelta(hours=i*3)
+                url = build_smap_url(earlier_time, version, minor_version, opendap=opendap)
                 #TODO check for availability without triggering warnings
                 try: 
                     smap = xr.open_dataset(url)
                 except (KeyError, OSError):
                     continue
                 break
-            logging.warning(f'Using latest available SMAP data: {start_time}')
+            logging.warning(f'Using latest available SMAP data: {earlier_time}')
         # Convert to WGS84
         smap['x'] = smap.cell_lon[0,]
         smap['y'] = smap.cell_lat[:, 0]
     else:
-        file_path = download_smap(url)
+        try: 
+            file_path = download_smap(url)
+        except: 
+            logging.warning('SMAP data is not available for'
+            ' the specified time and version.')
+            for i in range(1, 17):
+                earlier_time = start_time - pd.Timedelta(hours=i*3)
+                url = build_smap_url(earlier_time, version, minor_version, opendap=False)
+                try: 
+                    file_path = download_smap(url)
+                except RuntimeError:
+                    continue
+                break
+            logging.warning(f'Using latest available SMAP data: {earlier_time}')
         smap_grid = xr.open_dataset(file_path)
         smap = xr.open_dataset(file_path, group='Geophysical_Data')
         # Convert to WGS84
