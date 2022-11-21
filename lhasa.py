@@ -136,7 +136,7 @@ def get_valid_SMAP_time(start_time):
     hours = pd.date_range(day +" 01:30", periods=9, freq="3h")
     return hours[hours.get_loc(start_time, method = 'nearest')]
 
-def build_smap_url(t, version='6', minor_version='030', opendap=True):
+def build_smap_url(t, version='7', minor_version='030', opendap=True):
     """Build URL to SMAP data"""
     od_server = 'https://n5eil02u.ecs.nsidc.org/opendap/'
     http_server = 'https://n5eil01u.ecs.nsidc.org/'
@@ -159,12 +159,12 @@ def download_smap(url, path='./smap'):
             with open(file_path, 'wb') as f:
                 f.write(r.content)
         else: 
-            raise RuntimeError(f'{r.status_code}: could not download{r.url}')
+            return None
     return file_path
 
 def get_smap(
         start_time, variables=['sm_profile_wetness', 'snow_mass'], 
-        load=True, version='6', minor_version='030', opendap=True, 
+        load=True, version='7', minor_version='030', opendap=True, 
         latitudes=slice(-60, 60), longitudes=slice(-180, 180)
     ):
     """returns an xarray dataset representing 1 SMAP file"""
@@ -176,42 +176,47 @@ def get_smap(
         except:
             logging.warning('SMAP data is not available for'
                 ' the specified time and version.')
-            for i in range(1, 17):
+            for i in range(1, 17): # Look back 2 more days
                 earlier_time = start_time - pd.Timedelta(hours=i*3)
                 url = build_smap_url(earlier_time, version, minor_version, opendap=opendap)
                 #TODO check for availability without triggering warnings
                 try: 
                     smap = xr.open_dataset(url)
                 except (KeyError, OSError):
-                    continue
-                break
+                    smap = None
+                if smap is not None:
+                    break
+            if smap is None:
+                logging.warning(f'No  SMAP data available since: {earlier_time}')
+                return None
             logging.warning(f'Using latest available SMAP data: {earlier_time}')
         # Convert to WGS84
         smap['x'] = smap.cell_lon[0,]
         smap['y'] = smap.cell_lat[:, 0]
     else:
-        try: 
-            file_path = download_smap(url)
-        except: 
+        file_path = download_smap(url)
+        if file_path is None:
             logging.warning('SMAP data is not available for'
             ' the specified time and version.')
-            for i in range(1, 17):
+            for i in range(1, 17):  # Look back 2 more days
                 earlier_time = start_time - pd.Timedelta(hours=i*3)
                 url = build_smap_url(earlier_time, version, minor_version, opendap=False)
-                try: 
-                    file_path = download_smap(url)
-                except RuntimeError:
-                    continue
-                break
+                file_path = download_smap(url)
+                if file_path is not None:
+                    break
+
+            if file_path is None:
+                logging.warning(f'No  SMAP data available since: {earlier_time}')
+                return None
             logging.warning(f'Using latest available SMAP data: {earlier_time}')
         smap_grid = xr.open_dataset(file_path)
         smap = xr.open_dataset(file_path, group='Geophysical_Data')
         # Convert to WGS84
         smap['x'] = smap_grid.cell_lon[0,].values
         smap['y'] = smap_grid.cell_lat[:, 0].values
+    smap = smap[variables]
     smap = smap.sortby('y')
     smap = smap.sel(y=latitudes, x=longitudes)
-    smap = smap[variables]
     if load: 
         smap.load()
     return smap.rename(y='lat', x='lon')
@@ -492,8 +497,8 @@ if __name__ == "__main__":
         help='maximum longitude (WGS84)')
     parser.add_argument('-W', '--west', type=float,  default=-180.0, 
         help='minimum longitude (WGS84)')
-    parser.add_argument('-sv', '--smap_version', default='6030',
-        help='SMAP L4 major and minor version, e.g. 6030')
+    parser.add_argument('-sv', '--smap_version', default='7030',
+        help='SMAP L4 major and minor version, e.g. 7030')
     parser.add_argument('-iv', '--imerg_version', default='06C',
         help='IMERG version, e.g. 06C')
     parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
@@ -707,6 +712,12 @@ if __name__ == "__main__":
                 latitudes=slice(args.south, args.north), 
                 longitudes=slice(args.west, args.east)
             )
+            if smap is None:
+                if args.lead > 0:
+                    logging.warning('LHASA skipped to the forecast product.')
+                    continue
+                else:
+                    raise SystemExit('LHASA halted because SMAP is unavailable.')
             moisture = smap[smap_variables[0]]
             snow = smap[smap_variables[1]]
             # Match variable names in GEOS
