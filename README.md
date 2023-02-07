@@ -17,7 +17,7 @@ The latest predictions can be downloaded from https://maps.nccs.nasa.gov/downloa
 
 ### Data files
 
-LHASA requires several large data files, but not all data may be needed by all users. The contents of [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) are required for the global landslide forecast. The contents of [exposure.zip]() are only used for the exposure analysis. The contents of [ref_data.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip) are only used for the global post-fire debris flow analysis. 
+LHASA requires several large data files, but not all data may be needed by all users. The contents of [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) are required for the global landslide forecast. The contents of [exposure.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/exposure.zip) are only used for the exposure analysis. The contents of [ref_data.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip) are only used for the global post-fire debris flow analysis. 
 
 ### Installation
 
