@@ -330,10 +330,12 @@ def fill_array(prediction, mask, start_time):
 
 def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     """Adds metadata for compliance with CF and GES-DISC standards"""
+    now = pd.datetime.now().strftime('%Y-%m-%dT%H:%M:%S:%fZ')
+    data_set.attrs["ProductionDateTime"] = now
     data_set.attrs['title'] = 'Landslide Hazard Analysis for Situational Awareness'
     data_set.attrs['institution'] = 'NASA GSFC'
-    data_set.attrs['source'] = 'LHASA V2.0.0b'
-    data_set.attrs['history'] = f'{pd.Timestamp.now()} File written by XArray version {xr.__version__}'
+    data_set.attrs['source'] = 'LHASA V2.0.0'
+    data_set.attrs["history"] = f"{now} File written by XArray version {xr.__version__}"
     if run_mode == 'nrt': 
         data_set.attrs['references'] = (
             'Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. '
@@ -351,12 +353,21 @@ def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     data_set.attrs['Conventions'] = 'CF-1.8'
     data_set.attrs['ShortName'] = 'LHASA'
     data_set.attrs['LongName'] = 'Landslide Hazard Analysis for Situational Awareness (LHASA)'
-    data_set.attrs['VersionID'] = '2.0.0b'
+    data_set.attrs['VersionID'] = '2.0.0'
     data_set.attrs['Format'] = 'netCDF-4'
     data_set.attrs['DataSetQuality'] = 'NRT'
     data_set.attrs['IdentifierProductDOIAuthority'] = 'https://doi.org/'
-    data_set.attrs['IdentifierProductDOI'] = '10.5067/nnnnn'
+    data_set.attrs['IdentifierProductDOI'] = '10.5067/8VKQDQFFOTS3'
     data_set.attrs['ProcessingLevel'] = '4'
+    start_date = data_set["time"].dt.strftime("%Y-%m-%d").values[0]
+    data_set.attrs["RangeBeginningDate"] = start_date
+    data_set.attrs["RangeBeginningTime"] = "00:00:00.000000"
+    end_date = (
+        data_set["time"] 
+        + pd.Timedelta(days=1)
+    ).dt.strftime("%Y-%m-%d").values[0]
+    data_set.attrs["RangeEndingDate"] = end_date
+    data_set.attrs["RangeEndingTime"] = "00:00:00.000000"
     data_set['lat'].attrs['long_name'] = 'Latitude (Degrees)'
     data_set['lat'].attrs['standard_name'] = 'latitude'
     data_set['lat'].attrs['units'] = 'degrees_north'
