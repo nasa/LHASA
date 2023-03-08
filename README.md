@@ -4,9 +4,7 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 
 ## What's new
 
-2022-9-8 Added an option to use the https server to obtain SMAP, due to an outage with the OpenDAP server. This option is likely to increase the time required to access the SMAP data, as many variables are not used by LHASA. 
-
-2022-6-23 Added an option to choose between OpenDAP and file download servers for obtaining IMERG. OpenDAP enables reduced data volumes, both for transfer and storage; while file downloads from the PPS site may offer reduced latency and improved reliability. This capacity is controlled with the '-od' or '--opendap' argument in [lhasa.py](https://github.com/nasa/LHASA/blob/master/lhasa.py).
+2023-3-2 Replaced land mask with a file based on the MOD44W global water mask. This is combined with the existing mask from SMAP L4. To use the new mask file, users should download [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) again.
 
 ## LHASA 2.0
 
