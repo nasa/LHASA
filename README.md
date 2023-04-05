@@ -30,13 +30,13 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     # See for more info: https://disc.gsfc.nasa.gov/data-access
     touch ~/.urs_cookies
     touch ~/.netrc
-    echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> .netrc
+    echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> ~/.netrc
     touch ~/.dodsrc
     # Manage PPS connection, which is only necessary for downloading IMERG HDF5
     # See for more info: https://registration.pps.eosdis.nasa.gov/registration/
-    echo "machine jsimpsonhttps.pps.eosdis.nasa.gov login <email>  password <email>" >> .netrc
-    echo "HTTP.NETRC=~/.netrc" >> .dodsrc
-    echo "HTTP.COOKIEJAR=~/.urs_cookies" >> .dodsrc
+    echo "machine jsimpsonhttps.pps.eosdis.nasa.gov login <email>  password <email>" >> ~/.netrc
+    echo "HTTP.NETRC=~/.netrc" >> ~/.dodsrc
+    echo "HTTP.COOKIEJAR=~/.urs_cookies" >> ~/.dodsrc
     
     # Set up directory structure
     mkdir -p nrt/hazard/tif
