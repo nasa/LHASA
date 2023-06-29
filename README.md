@@ -4,6 +4,8 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 
 ## What's new
 
+2023-6-29 Replaced the post-fire debris flow model, which had stopped working due to changes to the Google Earth Engine API. 
+
 2023-3-2 Replaced land mask with a file based on the MOD44W global water mask. This is combined with the existing mask from SMAP L4. To use the new mask file, users should download [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) again.
 
 ## LHASA 2.0
@@ -43,7 +45,6 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     mkdir -p nrt/exposure/csv
     mkdir -p fcast/hazard/tif
     mkdir -p fcast/exposure/csv
-    mkdir -p pfdf/firms
     mkdir imerg
     mkdir smap
 
@@ -60,19 +61,14 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     unzip ref_data.zip -d pfdf/ &&
     rm ref_data.zip
 
-    # Configure post-fire debris flow model
-    python pfdf/setup.py
+    # Configure authorization for post-fire debris flow model
+    python pfdf/scripts/make_netrc.py
 
 The post-fire debris flow module uses Google Earth Engine to access Landsat imagery. Please see the [README](https://github.com/nasa/LHASA/blob/master/pfdf/README.md) for more information. 
 
 ### Routine operation
 
-Once a month, run the following commands to build the fires database needed to run the post-fire debris flow module:
-
-    conda activate lhasa
-    python /scripts/gee_export_all.py --filepath /pfdf --gee_username username
-
-Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
+Run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
 
 ### Citation
 
@@ -90,7 +86,7 @@ The software released here enables the user to run the global landslide forecast
 
 ### Archive
 
-No long-term archive for predictions from LHASA 2.0 has been established. Users of Google Earth Engine can find an interim archive at *users/nbiswasuw/Hazard*. 
+A long-term archive for hazard maps from LHASA 2.0 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_2.0.0/summary). 
 
 ### Contributing
 
@@ -126,4 +122,4 @@ Stanley, T., and D. B. Kirschbaum. 2017. "A heuristic approach to global landsli
 
 ### Archive
 
-A long-term archive for predictions from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_1.1/summary).
+A long-term archive for hazard maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_1.1/summary). An archive for exposure maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Exposure_Maps_1.0/summary). 
