@@ -4,9 +4,9 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 
 ## What's new
 
-2022-9-8 Added an option to use the https server to obtain SMAP, due to an outage with the OpenDAP server. This option is likely to increase the time required to access the SMAP data, as many variables are not used by LHASA. 
+2023-6-29 Replaced the post-fire debris flow model, which had stopped working due to changes to the Google Earth Engine API. 
 
-2022-6-23 Added an option to choose between OpenDAP and file download servers for obtaining IMERG. OpenDAP enables reduced data volumes, both for transfer and storage; while file downloads from the PPS site may offer reduced latency and improved reliability. This capacity is controlled with the '-od' or '--opendap' argument in [lhasa.py](https://github.com/nasa/LHASA/blob/master/lhasa.py).
+2023-3-2 Replaced land mask with a file based on the MOD44W global water mask. This is combined with the existing mask from SMAP L4. To use the new mask file, users should download [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) again.
 
 ## LHASA 2.0
 
@@ -32,20 +32,19 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     # See for more info: https://disc.gsfc.nasa.gov/data-access
     touch ~/.urs_cookies
     touch ~/.netrc
-    echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> .netrc
+    echo "machine urs.earthdata.nasa.gov login <uid> password <password>" >> ~/.netrc
     touch ~/.dodsrc
     # Manage PPS connection, which is only necessary for downloading IMERG HDF5
     # See for more info: https://registration.pps.eosdis.nasa.gov/registration/
-    echo "machine jsimpsonhttps.pps.eosdis.nasa.gov login <email>  password <email>" >> .netrc
-    echo "HTTP.NETRC=~/.netrc" >> .dodsrc
-    echo "HTTP.COOKIEJAR=~/.urs_cookies" >> .dodsrc
+    echo "machine jsimpsonhttps.pps.eosdis.nasa.gov login <email>  password <email>" >> ~/.netrc
+    echo "HTTP.NETRC=~/.netrc" >> ~/.dodsrc
+    echo "HTTP.COOKIEJAR=~/.urs_cookies" >> ~/.dodsrc
     
     # Set up directory structure
     mkdir -p nrt/hazard/tif
     mkdir -p nrt/exposure/csv
     mkdir -p fcast/hazard/tif
     mkdir -p fcast/exposure/csv
-    mkdir -p pfdf/firms
     mkdir imerg
     mkdir smap
 
@@ -62,19 +61,12 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     unzip ref_data.zip -d pfdf/ &&
     rm ref_data.zip
 
-    # Configure post-fire debris flow model
-    python pfdf/setup.py
-
-The post-fire debris flow module uses Google Earth Engine to access Landsat imagery. Please see the [README](https://github.com/nasa/LHASA/blob/master/pfdf/README.md) for more information. 
+    # Configure authorization for post-fire debris flow model
+    python pfdf/scripts/make_netrc.py
 
 ### Routine operation
 
-Once a month, run the following commands to build the fires database needed to run the post-fire debris flow module:
-
-    conda activate lhasa
-    python /scripts/gee_export_all.py --filepath /pfdf --gee_username username
-
-Then run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
+Run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
 
 ### Citation
 
@@ -88,11 +80,11 @@ Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide N
 
 ### Model training
 
-The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://eis.mysmce.com/) project funded by NASA. 
+The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://freshwater.eis.smce.nasa.gov/storymap.html?story=ls) project funded by NASA. 
 
 ### Archive
 
-No long-term archive for predictions from LHASA 2.0 has been established. Users of Google Earth Engine can find an interim archive at *users/nbiswasuw/Hazard*. 
+A long-term archive for hazard maps from LHASA 2.0 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_2.0.0/summary). 
 
 ### Contributing
 
@@ -116,7 +108,7 @@ Full operational code for LHASA 1.0 is available in python at https://github.com
 
 ### Data files
 
-LHASA 1.1 requires the use of 2 data files, the 95th percentile rainfall and the global landslide susceptibility map. While the former is bundled with the [code release](https://github.com/nasa/LHASA/releases/tag/v1.1.1), the latter is too large and must be downloaded from https://gpm.nasa.gov/sites/default/files/downloads/global-landslide-susceptibility-map-1-30-20.zip. Note that this dataset has not been updated since 2020, at which time the available data on forest loss were for 2018. Users are encouraged to map susceptibility with current information on their own study areas, as well as update the rainfall threshold as needed. 
+LHASA 1.1 requires the use of 2 data files, the 95th percentile rainfall and the global landslide susceptibility map. While the former is bundled with the [code release](https://github.com/nasa/LHASA/releases/tag/v1.1.1), the latter is too large and must be downloaded from https://gpm.nasa.gov/sites/default/files/downloads/global-landslide-susceptibility-map-1-30-20.zip. Users are encouraged to map susceptibility with current information on their own study areas, as well as update the rainfall threshold as needed. 
 
 ### Citation
 
@@ -128,4 +120,4 @@ Stanley, T., and D. B. Kirschbaum. 2017. "A heuristic approach to global landsli
 
 ### Archive
 
-A long-term archive for predictions from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_1.1/summary).
+A long-term archive of hazard maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_1.1/summary). An archive of exposure maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Exposure_Maps_1.0/summary). 
