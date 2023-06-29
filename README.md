@@ -64,8 +64,6 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     # Configure authorization for post-fire debris flow model
     python pfdf/scripts/make_netrc.py
 
-The post-fire debris flow module uses Google Earth Engine to access Landsat imagery. Please see the [README](https://github.com/nasa/LHASA/blob/master/pfdf/README.md) for more information. 
-
 ### Routine operation
 
 Run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
@@ -82,7 +80,7 @@ Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide N
 
 ### Model training
 
-The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://eis.mysmce.com/) project funded by NASA. 
+The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://freshwater.eis.smce.nasa.gov/storymap.html?story=ls) project funded by NASA. 
 
 ### Archive
 
@@ -110,7 +108,7 @@ Full operational code for LHASA 1.0 is available in python at https://github.com
 
 ### Data files
 
-LHASA 1.1 requires the use of 2 data files, the 95th percentile rainfall and the global landslide susceptibility map. While the former is bundled with the [code release](https://github.com/nasa/LHASA/releases/tag/v1.1.1), the latter is too large and must be downloaded from https://gpm.nasa.gov/sites/default/files/downloads/global-landslide-susceptibility-map-1-30-20.zip. Note that this dataset has not been updated since 2020, at which time the available data on forest loss were for 2018. Users are encouraged to map susceptibility with current information on their own study areas, as well as update the rainfall threshold as needed. 
+LHASA 1.1 requires the use of 2 data files, the 95th percentile rainfall and the global landslide susceptibility map. While the former is bundled with the [code release](https://github.com/nasa/LHASA/releases/tag/v1.1.1), the latter is too large and must be downloaded from https://gpm.nasa.gov/sites/default/files/downloads/global-landslide-susceptibility-map-1-30-20.zip. Users are encouraged to map susceptibility with current information on their own study areas, as well as update the rainfall threshold as needed. 
 
 ### Citation
 
@@ -122,4 +120,4 @@ Stanley, T., and D. B. Kirschbaum. 2017. "A heuristic approach to global landsli
 
 ### Archive
 
-A long-term archive for hazard maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_1.1/summary). An archive for exposure maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Exposure_Maps_1.0/summary). 
+A long-term archive of hazard maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Nowcast_1.1/summary). An archive of exposure maps from LHASA 1.1 is available at [GES-DISC](https://disc.gsfc.nasa.gov/datasets/Global_Landslide_Exposure_Maps_1.0/summary). 
