@@ -1,0 +1,14 @@
+name: pfdf
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - geocube
+  - xgboost
+  - xarray-spatial
+  - pysheds
+  - stackstac
+  - planetary-computer
+  - bs4
+  - boto3
+  - netcdf4
