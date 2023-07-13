@@ -4,9 +4,7 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 
 ## What's new
 
-2023-6-29 Replaced the post-fire debris flow model, which had stopped working due to changes to the Google Earth Engine API. 
-
-2023-3-2 Replaced land mask with a file based on the MOD44W global water mask. This is combined with the existing mask from SMAP L4. To use the new mask file, users should download [static.zip](https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip) again.
+See the [Changelog](https://github.com/nasa/LHASA/blob/master/CHANGELOG.md)
 
 ## LHASA 2.0
 
