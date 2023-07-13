@@ -475,7 +475,7 @@ def smap_cleanup(path: str, cache_days=0, cache_end_time=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='LHASA 2.0 global landslide forecast')
     parser.add_argument('-v', '--version', action='version', 
-        version='LHASA version 2.0.0b')
+        version='LHASA version 2.0.0')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
         help='location of input files')
     parser.add_argument('-op', '--output_path', help='location of output files')
@@ -689,7 +689,7 @@ if __name__ == "__main__":
                 raise FileExistsError(f'{nc_path} exists. Use the --overwrite'
                     ' argument to overwrite it.')
         else: 
-            nc_path = None
+            nc_path = ''
         if 'tif' in args.format:
             tif_path = (f'{output_path}/{run_mode}/hazard/tif/'
                 f'{initialization}{date_string}.tif')
@@ -697,7 +697,7 @@ if __name__ == "__main__":
                 raise FileExistsError(f'{tif_path} exists. Use the --overwrite'
                     ' argument to overwrite it.')
         else: 
-            tif_path = None
+            tif_path = ''
 
         day_before = daily_rain[i]
         yesterday = daily_rain[i + 1].interp_like(day_before, method='nearest')
