@@ -263,9 +263,11 @@ def workflow(bbox: list, writer=print):
         & (basins_copy["p_debris_flow"] >= 0.05)
         & (basins_copy["MedianSlope"] >= 10)
     ]
-    print("Output shape:", basins_copy.shape)
+
+    out_cols = ["Mean_dNBR", "SlopeBurnAreaRatio", "MaxRain", "MedianSlope", "AreaSqKm", "p_debris_flow", "geometry"]
+    print("Output shape:", basins_copy[out_cols].shape)
     json_name = os.path.join(output_path, "model_outputs", (rain_max.attrs['start'] + ".geojson"))
-    basins_copy.to_file(json_name, driver="GeoJSON")
+    basins_copy[out_cols].to_file(json_name, driver="GeoJSON")
     writer('Run finished.\n')
     return basins_copy
 
