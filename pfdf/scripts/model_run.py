@@ -248,18 +248,18 @@ def workflow(bbox: list, writer=print):
     basins = current_run_basins.reset_index()
     basins = basins.loc[basins["PropHM23"].dropna().index]
     basins["SlopeBurnAreaRatio"] = basins["PropHM23"]
-    basins["MaxVal"] = np.array([zonal_max(b, rain_max) for b in basins["geometry"]])
-    basins["MaxVal"] = pd.to_numeric(basins["MaxVal"])
+    basins["MaxRain"] = np.array([zonal_max(b, rain_max) for b in basins["geometry"]])
+    basins["MaxRain"] = pd.to_numeric(basins["MaxRain"])
 
     model = get_model(f"{home_path}/ref_data/model.json")
-    cols = ["Mean_dNBR", "SlopeBurnAreaRatio", "MaxVal", "MedianSlope", "AreaSqKm"]
+    cols = ["Mean_dNBR", "SlopeBurnAreaRatio", "MaxRain", "MedianSlope", "AreaSqKm"]
     predictors = xgb.DMatrix(basins[cols])
 
     basins["p_debris_flow"] = model.predict(predictors)
     basins_copy = basins.copy()
 
     basins_copy = basins_copy[
-        (basins_copy["MaxVal"] >= 1)
+        (basins_copy["MaxRain"] >= 1)
         & (basins_copy["p_debris_flow"] >= 0.05)
         & (basins_copy["MedianSlope"] >= 10)
     ]
