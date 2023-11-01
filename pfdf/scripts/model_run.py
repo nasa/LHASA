@@ -1,4 +1,4 @@
-import os    
+import os
 import shutil
 import glob
 import argparse
@@ -98,7 +98,6 @@ def workflow(bbox: list, writer=print):
     try: 
         run_data = pd.read_csv(f'{home_path}/ref_data/BasinToDoList.csv',index_col='HYBAS_ID')
         run_from_scratch = False
-                    
     except FileNotFoundError:
         writer('No run data file found! The data from this run will be saved to a new file.')
         run_from_scratch = True
@@ -116,7 +115,7 @@ def workflow(bbox: list, writer=print):
         run_data = new_ids
     else: # otherwise load in the existing basins that need to run
         run_data['geometry'] = run_data.geometry.apply(wkt.loads) # instantiate geometry
-        run_data = gpd.GeoDataFrame(run_data, geometry='geometry',crs='EPSG:6933')        
+        run_data = gpd.GeoDataFrame(run_data, geometry='geometry', crs='EPSG:6933')
         # join with the new basins!
         run_data = pd.concat([run_data, new_ids[~new_ids.index.isin(run_data.index)]]) # only data that aren't already present
         
@@ -156,7 +155,6 @@ def workflow(bbox: list, writer=print):
             writer(f'Dropping {len(recently_flagged_overlap)} overlapping IDs...')
             run_data = run_data.drop(recently_flagged_overlap)
         
-        
         # BUT: look at previous sucessful runs, and determine if it's time for dNBR reassessment.
         current_run_basins['dNBRCalcDiff'] = (pd.to_datetime(date.today()) - pd.to_datetime(current_run_basins['dnbrCalcDate'])) / np.timedelta64(1,'M')
         basins_for_rerun = current_run_basins[current_run_basins['dNBRCalcDiff']>1].copy()
@@ -181,7 +179,7 @@ def workflow(bbox: list, writer=print):
     if run_from_scratch:
         run_idx = run_data.index
     else:
-        run_idx = flag_recent_failed_runs(run_data)    
+        run_idx = flag_recent_failed_runs(run_data)
         
     run_data['FireStart'] = run_data['FireStart'].apply(lambda x: pd.to_datetime(x).strftime('%Y-%m-%d'))
     run_data['FireEnd'] = run_data['FireEnd'].apply(lambda x: pd.to_datetime(x).strftime('%Y-%m-%d'))
@@ -207,7 +205,7 @@ def workflow(bbox: list, writer=print):
         else: 
             overlap = list(set(basins_all.index)&set(current_run_basins.index)) # flag the indices of the basins that got rerun
             if overlap: # update based on rerun!
-                writer(f'Updating {len(overlap)} IDs...')                
+                writer(f'Updating {len(overlap)} IDs...')
                 current_run_basins.drop(overlap,inplace=True) # drop the overlapping indices from the main dataset
             # join all data, including that which were rerun
             current_run_basins = pd.concat([current_run_basins, basins_all])
@@ -231,9 +229,8 @@ def workflow(bbox: list, writer=print):
     current_run_basins.to_file(f'{home_path}/ref_data/BasinsToRun_BACKUP.geojson',header=True,index=True)
     writer('all basins run\n')
 
-    shutil.rmtree(os.path.join(home_path,'recover_files'))
     writer('Removing temp files...')
-    
+    shutil.rmtree(os.path.join(home_path,'recover_files'))
     
     writer('Pulling IMERG...\n')
     rain_max = pull_imerg(
@@ -257,17 +254,16 @@ def workflow(bbox: list, writer=print):
 
     basins["p_debris_flow"] = model.predict(predictors)
     basins_copy = basins.copy()
-
     basins_copy = basins_copy[
         (basins_copy["MaxRain"] >= 1)
         & (basins_copy["p_debris_flow"] >= 0.05)
         & (basins_copy["MedianSlope"] >= 10)
     ]
-
     out_cols = ["Mean_dNBR", "SlopeBurnAreaRatio", "MaxRain", "MedianSlope", "AreaSqKm", "p_debris_flow", "geometry"]
-    print("Output shape:", basins_copy[out_cols].shape)
+    basins_copy = basins_copy[out_cols]
+    print("Output shape:", basins_copy.shape)
     json_name = os.path.join(output_path, "model_outputs", (rain_max.attrs['start'] + ".geojson"))
-    basins_copy[out_cols].to_file(json_name, driver="GeoJSON")
+    basins_copy.to_file(json_name, driver="GeoJSON")
     writer('Run finished.\n')
     return basins_copy
 
