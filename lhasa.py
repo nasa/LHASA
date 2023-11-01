@@ -204,7 +204,7 @@ def get_smap(
                 file_path = download_smap(url)
                 if file_path is not None:
                     break
-
+            
             if file_path is None:
                 logging.warning(f'No  SMAP data available since: {earlier_time}')
                 return None
@@ -552,7 +552,8 @@ if __name__ == "__main__":
         else:
             run_time = get_latest_GEOS_run_time(forecast_start_time)
         if not run_time:
-            raise RuntimeError(f'No GEOS-FP run is available for {forecast_start_time}.')
+            warnings.warn(f'No GEOS-FP run is available for {forecast_start_time}.')
+            args.lead = 0 # Fall back to NRT-only model run
     if args.lead > 2:
         warnings.warn('Only 2 days of forecast data are considered reliable.')
 
@@ -784,9 +785,15 @@ if __name__ == "__main__":
         if tif_path:
             save_tiff(p_landslide, tif_path)
         logging.info('saved output to disk')
-
+        
         if args.exposure:
-            csv_path = f'{output_path}/{run_mode}/exposure/csv/{date_string}.csv'
+            csv_path = os.path.join(
+                output_path, 
+                run_mode, 
+                'exposure', 
+                'csv', 
+                f'{date_string}.csv'
+            )
             if os.path.exists(csv_path) and not args.overwrite:
                 raise FileExistsError(f'{csv_path} exists. Use the --overwrite'
                     ' argument to overwrite it.')
@@ -800,7 +807,8 @@ if __name__ == "__main__":
             add_ratios(totals)
             totals = totals.drop(columns=['population', 'road_length', 'cells'])
             logging.info('Calculated exposure levels by county')
-            named = admin_names.merge(totals, on='gadm_fid', how='outer')
+            totals = totals[totals['l_haz'] > 0]
+            named = admin_names.merge(totals, on='gadm_fid', how='inner')
             named.to_csv(csv_path)
             logging.info(f'saved {csv_path}')
     
