@@ -106,7 +106,7 @@ Full operational code for LHASA 1.0 is available in python at https://github.com
 
 ### Data files
 
-LHASA 1.1 requires the use of 2 data files, the 95th percentile rainfall and the global landslide susceptibility map. While the former is bundled with the [code release](https://github.com/nasa/LHASA/releases/tag/v1.1.1), the latter is too large and must be downloaded from https://gpm.nasa.gov/sites/default/files/downloads/global-landslide-susceptibility-map-1-30-20.zip. Users are encouraged to map susceptibility with current information on their own study areas, as well as update the rainfall threshold as needed. 
+LHASA 1.1 requires the use of 2 data files, the 95th percentile rainfall and the global landslide susceptibility map. While the former is bundled with the [code release](https://github.com/nasa/LHASA/releases/tag/v1.1.1), the latter is too large and must be downloaded from https://gpm.nasa.gov/sites/default/files/downloads/global-landslide-susceptibility-map-2-27-23.tif. Users are encouraged to map susceptibility with current information on their own study areas, as well as update the rainfall threshold as needed. 
 
 ### Citation
 

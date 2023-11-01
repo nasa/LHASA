@@ -49,10 +49,10 @@ def get_hls_stack(gdf, start, end, creds=False,
     search = catalog.search(collections = collections,
                             bbox = bbox,
                             datetime = start+'/'+end) 
- 
+    
     print('Total matches for search:',search.matched())
     
-    item_list = list(search.get_items())
+    item_list = list(search.items())
     
     ls_ids = [item for item in item_list if 'L30' in item.id] # Landsat IDs
     s_ids = [item for item in item_list if 'S30' in item.id] # Sentinel IDs
@@ -126,8 +126,6 @@ def get_hls_stack(gdf, start, end, creds=False,
         bitmask = 0
         for field in mask_bitfields:
             bitmask |= 1 << field
-
-        bin(bitmask)
         
         data_qa = data.sel(band="Fmask").astype("uint16")
         data_bad = data_qa & bitmask  # just look at those 4 bits
@@ -148,15 +146,9 @@ def calc_dnbr(gdf, fire_start, fire_end,
     if creds==None:
         creds = get_lpdaac_creds()
         exp = pd.to_datetime(creds['expiration'])
-        
     else:
-        creds = creds # not necessary but helps with intuitive flow of function
         exp = pd.to_datetime(creds['expiration'])
         
-    
-    bounds = gdf.to_crs('EPSG:4326').total_bounds
-    minx, miny, maxx, maxy = bounds[0], bounds[1], bounds[2], bounds[3]
-
     pre_start = (pd.to_datetime(fire_start) - DateOffset(months=pre_offset)).strftime('%Y-%m')
     pre_end = fire_start # the end of the prefire period is the start of the fire! 
 
@@ -197,9 +189,7 @@ def calc_dnbr(gdf, fire_start, fire_end,
     post_nbr = (post_nir - post_swir1)/((post_nir + post_swir1) + 1e-10)
     
     dnbr = pre_nbr - post_nbr
-    #dnbr = dnbr.where(dnbr>0)
     dnbr.rio.write_crs('EPSG:6933',inplace=True)
-    
     return dnbr.compute(), creds # return creds to reuse!
 
 def pc_catalog():

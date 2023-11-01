@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reduced size of exposure table
+
 ### Fixed
 
 - Switched default IMERG version to 06D.
