@@ -32,7 +32,7 @@ OPENDAP_URL = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap"
 PPS_URL = "https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/"
 
 
-def build_imerg_url(start_time, run="E", version="06D", opendap=True):
+def build_imerg_url(start_time, run="E", version="06E", opendap=True):
     """Build URL to IMERG data"""
     if opendap:
         product = f"GPM_3IMERGHH{run}.{version[:2]}"
@@ -112,7 +112,7 @@ def get_latest_imerg_url(run="E", version="06"):
     raise RuntimeError(f"Cannot parse imerg catalog at {url}")
 
 
-def get_latest_imerg_time(run="E", version="06D", opendap=True):
+def get_latest_imerg_time(run="E", version="06E", opendap=True):
     """Returns a pandas time stamp representing the latest available data"""
     if opendap:
         url = get_latest_imerg_url(run=run, version=version)
@@ -142,7 +142,7 @@ def get_IMERG_precipitation(
     liquid=True,
     load=True,
     run="E",
-    version="06D",
+    version="06E",
     opendap=True,
     latitudes=slice(-60, 60),
     longitudes=slice(-180, 180),
@@ -188,7 +188,7 @@ def pull_imerg(
     south=-60.0,
     east=180,
     west=-180,
-    version="06D",
+    version="06E",
     opendap=False,
 ):
     """Loads IMERG data and runs prediction model"""
