@@ -38,7 +38,7 @@ NO_DATA = -9999.0
 OPENDAP_URL = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap'
 PPS_URL = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/'
 
-def build_imerg_url(start_time, run='E', version='06D', opendap=True):
+def build_imerg_url(start_time, run='E', version='06E', opendap=True):
     """Build URL to IMERG data"""
     if opendap:
         product = f'GPM_3IMERGHH{run}.{version[:2]}'
@@ -108,7 +108,7 @@ def get_latest_imerg_url(run='E', version='06'):
         return day_url
     raise RuntimeError(f'Cannot parse imerg catalog at {url}')
 
-def get_latest_imerg_time(run='E', version='06D', opendap=True):
+def get_latest_imerg_time(run='E', version='06E', opendap=True):
     """Returns a pandas time stamp representing the latest available data"""
     if opendap:
         url = get_latest_imerg_url(run=run, version=version)
@@ -222,7 +222,7 @@ def get_smap(
     return smap.rename(y='lat', x='lon')
 
 def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
-        liquid=True, load=True, run='E', version='06D', opendap=True, cache_dir='./imerg',
+        liquid=True, load=True, run='E', version='06E', opendap=True, cache_dir='./imerg',
         latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
     """Opens IMERG data"""
     if end_time <= start_time:
@@ -510,8 +510,8 @@ if __name__ == "__main__":
         help='minimum longitude (WGS84)')
     parser.add_argument('-sv', '--smap_version', default='7030',
         help='SMAP L4 major and minor version, e.g. 7030')
-    parser.add_argument('-iv', '--imerg_version', default='06D',
-        help='IMERG version, e.g. 06D')
+    parser.add_argument('-iv', '--imerg_version', default='06E',
+        help='IMERG version, e.g. 06E')
     parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
         help='Days of IMERG data to cache.')
     parser.add_argument('-scd', '--smap_cache_days', type=int,  default=0, 
