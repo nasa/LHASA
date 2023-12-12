@@ -134,7 +134,7 @@ def get_latest_imerg_time(run='E', version='06E', opendap=True):
 def get_valid_SMAP_time(start_time):
     day = start_time.strftime('%Y-%m-%d')
     hours = pd.date_range(day +" 01:30", periods=9, freq="3h")
-    return hours[hours.get_loc(start_time, method = 'nearest')]
+    return hours[hours.get_indexer([start_time], method = 'nearest')[0]]
 
 def build_smap_url(t, version='7', minor_version='030', opendap=True):
     """Build URL to SMAP data"""
@@ -291,7 +291,7 @@ def get_GEOS_variable(start_time: pd.Timestamp, run_time=None,
         geos = xr.open_dataset(url)
     geos = geos.sel(time=start_time, method='nearest')
     geos = geos.sel(lon=longitudes, lat=latitudes)
-    return geos[variable].drop('time')
+    return geos[variable].drop_vars('time')
 
 def get_GEOS_run(run_time: pd.Timestamp, mode='fcast'):
     url = build_GEOS_url(run_time=run_time, mode=mode)
@@ -330,11 +330,11 @@ def fill_array(prediction, mask, start_time):
 
 def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     """Adds metadata for compliance with CF and GES-DISC standards"""
-    now = pd.datetime.now().strftime('%Y-%m-%dT%H:%M:%S:%fZ')
+    now = pd.Timestamp.now().strftime('%Y-%m-%dT%H:%M:%S:%fZ')
     data_set.attrs["ProductionDateTime"] = now
     data_set.attrs['title'] = 'Landslide Hazard Analysis for Situational Awareness'
     data_set.attrs['institution'] = 'NASA GSFC'
-    data_set.attrs['source'] = 'LHASA V2.0.0'
+    data_set.attrs['source'] = 'LHASA V2.0.1'
     data_set.attrs["history"] = f"{now} File written by XArray version {xr.__version__}"
     if run_mode == 'nrt': 
         data_set.attrs['references'] = (
@@ -353,7 +353,7 @@ def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     data_set.attrs['Conventions'] = 'CF-1.8'
     data_set.attrs['ShortName'] = 'LHASA'
     data_set.attrs['LongName'] = 'Landslide Hazard Analysis for Situational Awareness (LHASA)'
-    data_set.attrs['VersionID'] = '2.0.0'
+    data_set.attrs['VersionID'] = '2.0.1'
     data_set.attrs['Format'] = 'netCDF-4'
     data_set.attrs['DataSetQuality'] = 'NRT'
     data_set.attrs['IdentifierProductDOIAuthority'] = 'https://doi.org/'
@@ -434,7 +434,7 @@ def expose(hazard: xr.DataArray, variables: xr.Dataset,
         for v in selection:
             v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}"
             variables[v_name] = variables[v] * variables[f'{k}_haz']
-    variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
+    variables = variables.drop_vars(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
     return variables
 
 def add_ratios(totals, thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
@@ -475,7 +475,7 @@ def smap_cleanup(path: str, cache_days=0, cache_end_time=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='LHASA 2.0 global landslide forecast')
     parser.add_argument('-v', '--version', action='version', 
-        version='LHASA version 2.0.0')
+        version='LHASA version 2.0.1')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
         help='location of input files')
     parser.add_argument('-op', '--output_path', help='location of output files')
@@ -634,7 +634,7 @@ if __name__ == "__main__":
         imerg = imerg_late
 
     imerg_daily = imerg.resample({'time': '24H'}, 
-        base=forecast_start_time.hour).sum().load()
+        offset=pd.Timedelta(f'{forecast_start_time.hour}H')).sum().load()
 
     if args.lead > 0:
         geos_run_times = [run_time, run_time - pd.Timedelta(hours=6)]
@@ -666,7 +666,7 @@ if __name__ == "__main__":
 
         geos = xr.concat(selected_geos_precip, dim='time').sortby('time')
         geos_daily = geos.resample({'time': '24H'}, 
-            base=forecast_start_time.hour).sum().load()
+            offset=pd.Timedelta(f'{forecast_start_time.hour}H')).sum().load()
         daily_rain = [da for da in imerg_daily] + [da for da in geos_daily]
     else: 
         daily_rain = [da for da in imerg_daily]
@@ -769,7 +769,7 @@ if __name__ == "__main__":
             'Lithology', 
             'Slope'
         ]
-        variables = xr.merge([regridded, static_variables.drop('land_mask')])
+        variables = xr.merge([regridded, static_variables.drop_vars('land_mask')])
         masked_values = [apply_mask(variables[v], mask=(static_variables['land_mask'] > 0)) for v in variable_order]
         logging.info('built mask')
         inputs = xgb.DMatrix(np.stack(masked_values, 1))
