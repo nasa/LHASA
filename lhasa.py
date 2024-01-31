@@ -782,9 +782,10 @@ if __name__ == "__main__":
             p_landslide = p_landslide.where(p_landslide >= 0.01)
         if nc_path:
             save_nc(p_landslide.to_dataset(), nc_path)
+            logging.info(f'saved {nc_path}')
         if tif_path:
             save_tiff(p_landslide, tif_path)
-        logging.info('saved output to disk')
+            logging.info(f'saved {tif_path}')
         
         if args.exposure:
             csv_path = os.path.join(
