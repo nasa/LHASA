@@ -253,7 +253,7 @@ def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp,
 def build_GEOS_url(run_time=None, mode='fcast'):
     """Build string for the GEOS OpenDAP server at the NCCS Data Portal"""
     if mode == 'fcast':
-        if run_time == None:
+        if run_time is None:
             raise ValueError('GEOS FP model run time must be specified for forecast mode')
         return f'https://opendap.nccs.nasa.gov/dods/GEOS-5/fp/0.25_deg/fcast/'\
             f'tavg1_2d_lnd_Nx/tavg1_2d_lnd_Nx.{run_time.year}{run_time.month:02}{run_time.day:02}'\
