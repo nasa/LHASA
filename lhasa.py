@@ -508,8 +508,8 @@ if __name__ == "__main__":
         help='maximum longitude (WGS84)')
     parser.add_argument('-W', '--west', type=float,  default=-180.0, 
         help='minimum longitude (WGS84)')
-    parser.add_argument('-sv', '--smap_version', default='7030',
-        help='SMAP L4 major and minor version, e.g. 7030')
+    parser.add_argument('-sv', '--smap_version', default='7031',
+        help='SMAP L4 major and minor version, e.g. 7031')
     parser.add_argument('-iv', '--imerg_version', default='06E',
         help='IMERG version, e.g. 06E')
     parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
