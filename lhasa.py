@@ -257,7 +257,7 @@ def build_GEOS_url(run_time=None, mode='fcast'):
             raise ValueError('GEOS FP model run time must be specified for forecast mode')
         return f'https://opendap.nccs.nasa.gov/dods/GEOS-5/fp/0.25_deg/fcast/'\
             f'tavg1_2d_lnd_Nx/tavg1_2d_lnd_Nx.{run_time.year}{run_time.month:02}{run_time.day:02}'\
-            f'_{run_time.round("6H").hour:02}'
+            f'_{run_time.round("6h").hour:02}'
     if mode == 'assim':
         return 'https://opendap.nccs.nasa.gov/dods/GEOS-5/fp/0.25_deg/assim/tavg1_2d_lnd_Nx'
 
@@ -268,7 +268,7 @@ def get_latest_GEOS_run_time(end_time=None):
     else:
         now = pd.Timestamp.now(tz='UTC')
     for i in range(0, 5):
-        latest = now.floor('6H') - pd.Timedelta(hours=i*6)
+        latest = now.floor('6h') - pd.Timedelta(hours=i*6)
         url = build_GEOS_url(latest)
         try:
             with warnings.catch_warnings():
@@ -544,9 +544,9 @@ if __name__ == "__main__":
         )
     if args.lead > 0:
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
-        forecast_start_time = forecast_start_time.floor('H')
+        forecast_start_time = forecast_start_time.floor('h')
         if args.run_time:
-            run_time = pd.Timestamp(args.run_time).floor('6H')
+            run_time = pd.Timestamp(args.run_time).floor('6h')
             if run_time > forecast_start_time:
                 raise ValueError("Forecast must start later than GEOS-FP run time")
         else:
@@ -666,7 +666,7 @@ if __name__ == "__main__":
 
         geos = xr.concat(selected_geos_precip, dim='time').sortby('time')
         geos_daily = geos.resample({'time': '24H'}, 
-            offset=pd.Timedelta(f'{forecast_start_time.hour}H')).sum().load()
+            offset=pd.Timedelta(f'{forecast_start_time.hour}h')).sum().load()
         daily_rain = [da for da in imerg_daily] + [da for da in geos_daily]
     else: 
         daily_rain = [da for da in imerg_daily]

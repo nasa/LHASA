@@ -2,11 +2,12 @@ name: lhasa
 channels:
   - conda-forge
 dependencies:
-  - xgboost
-  - rioxarray
-  - dask
-  - requests
+  - python=3.12
+  - xgboost=2.0
+  - rioxarray=0.15
+  - dask=2024.5
+  - requests=2.31
   - ca-certificates
   - certifi
   - openssl
-  - netcdf4
+  - netcdf4=1.6
