@@ -29,8 +29,7 @@ import numpy as np
 import xarray as xr
 import xgboost as xgb
 import pandas as pd
-import affine
-import rasterio
+import rioxarray
 import xml.etree.ElementTree as ET
 import warnings
 
@@ -391,31 +390,13 @@ def save_nc(data_set: xr.Dataset, file_path: str, run_mode='nrt'):
         'lon': {'zlib': False, '_FillValue': None}
     })
 
-def save_tiff(data_array, file_path):
+def save_tiff(data_array: xr.DataArray, file_path: str):
     """Saves prediction in geotiff format"""
-    
-    cell_size = 0.00833333333333333
-    metadata = {
-        'driver': 'GTiff', 
-        'compress': 'lzw',
-        'dtype': data_array.dtype, 
-        'nodata': -9999.0, 
-        'width': data_array['lon'].size, 
-        'height': data_array['lat'].size, 
-        'count': 1, 
-        'crs': 'EPSG:4326', 
-        'transform': affine.Affine(
-            cell_size, 
-            0.0, 
-            data_array['lon'].min() - cell_size/2, 
-            0.0, 
-            -cell_size, 
-            data_array['lat'].max() + cell_size/2), 
-        'tiled': False, 
-        'interleave': 'band'
-    }
-    with rasterio.open(file_path, 'w', **metadata) as dst:
-        dst.write(data_array.values)
+    data_array.rio.write_nodata(NO_DATA, inplace=True)
+    data_array.rio.write_crs(4326, inplace=True)
+    data_array = data_array.rename(lat="latitude", lon="longitude")
+    data_array.rio.to_raster(file_path)
+
 
 def get_model(file_path, threads=1):
     """Open trained model"""
@@ -634,7 +615,7 @@ if __name__ == "__main__":
         imerg = imerg_late
 
     imerg_daily = imerg.resample({'time': '24H'}, 
-        offset=pd.Timedelta(f'{forecast_start_time.hour}H')).sum().load()
+        offset=pd.Timedelta(f'{forecast_start_time.hour}h')).sum().load()
 
     if args.lead > 0:
         geos_run_times = [run_time, run_time - pd.Timedelta(hours=6)]
