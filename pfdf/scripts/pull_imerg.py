@@ -171,11 +171,11 @@ def get_IMERG_precipitation(
     imerg = imerg.sel(time=slice(start_time, end_time))
     imerg = imerg.sel(lat=latitudes, lon=longitudes)
     if liquid:
-        precipitation = imerg["precipitationCal"] * (
+        precipitation = imerg["precipitation"] * (
             imerg["probabilityLiquidPrecipitation"] > 0.5
         )
     else:
-        precipitation = imerg["precipitationCal"]
+        precipitation = imerg["precipitation"]
     if load:
         precipitation.load()
     return precipitation
