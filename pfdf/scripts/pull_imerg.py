@@ -32,7 +32,7 @@ OPENDAP_URL = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap"
 PPS_URL = "https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/"
 
 
-def build_imerg_url(start_time, run="E", version="06E", opendap=True):
+def build_imerg_url(start_time, run="E", version="07B", opendap=True):
     """Build URL to IMERG data"""
     if opendap:
         product = f"GPM_3IMERGHH{run}.{version[:2]}"
@@ -73,7 +73,7 @@ def download_imerg(url, path="imerg"):
     return file_path
 
 
-def get_latest_imerg_year(run="E", version="06"):
+def get_latest_imerg_year(run="E", version="07"):
     """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
     url = f"{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml"
     catalog = ET.fromstring(requests.get(url).content)
@@ -89,7 +89,7 @@ def get_latest_imerg_year(run="E", version="06"):
     raise RuntimeError(f"cannot parse imerg catalog at {url}")
 
 
-def get_latest_imerg_url(run="E", version="06"):
+def get_latest_imerg_url(run="E", version="07"):
     """Returns a path to the latest 30-minute IMERG data at GES-DISC OpenDAP"""
     version = str(version)[:2].zfill(2)
     year = get_latest_imerg_year(run=run, version=version)
@@ -112,7 +112,7 @@ def get_latest_imerg_url(run="E", version="06"):
     raise RuntimeError(f"Cannot parse imerg catalog at {url}")
 
 
-def get_latest_imerg_time(run="E", version="06E", opendap=True):
+def get_latest_imerg_time(run="E", version="07B", opendap=True):
     """Returns a pandas time stamp representing the latest available data"""
     if opendap:
         url = get_latest_imerg_url(run=run, version=version)
@@ -142,7 +142,7 @@ def get_IMERG_precipitation(
     liquid=True,
     load=True,
     run="E",
-    version="06E",
+    version="07B",
     opendap=True,
     latitudes=slice(-60, 60),
     longitudes=slice(-180, 180),
@@ -188,7 +188,7 @@ def pull_imerg(
     south=-60.0,
     east=180,
     west=-180,
-    version="06E",
+    version="07B",
     opendap=False,
 ):
     """Loads IMERG data and runs prediction model"""
