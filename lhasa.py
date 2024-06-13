@@ -37,7 +37,7 @@ NO_DATA = -9999.0
 OPENDAP_URL = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap'
 PPS_URL = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/'
 
-def build_imerg_url(start_time, run='E', version='06E', opendap=True):
+def build_imerg_url(start_time, run='E', version='07B', opendap=True):
     """Build URL to IMERG data"""
     if opendap:
         product = f'GPM_3IMERGHH{run}.{version[:2]}'
@@ -70,7 +70,7 @@ def download_imerg(url, path='./imerg'):
             raise RuntimeError(f'{r.status_code}: could not download{r.url}')
     return file_path
 
-def get_latest_imerg_year(run='E', version='06'):
+def get_latest_imerg_year(run='E', version='07'):
     """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
     url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml'
     catalog = ET.fromstring(requests.get(url).content)
@@ -83,7 +83,7 @@ def get_latest_imerg_year(run='E', version='06'):
             return int(year)
     raise RuntimeError(f'cannot parse imerg catalog at {url}')
 
-def get_latest_imerg_url(run='E', version='06'):
+def get_latest_imerg_url(run='E', version='07'):
     """Returns a path to the latest 30-minute IMERG data at GES-DISC OpenDAP"""
     version = str(version)[:2].zfill(2)
     year = get_latest_imerg_year(run=run, version=version)
@@ -107,7 +107,7 @@ def get_latest_imerg_url(run='E', version='06'):
         return day_url
     raise RuntimeError(f'Cannot parse imerg catalog at {url}')
 
-def get_latest_imerg_time(run='E', version='06E', opendap=True):
+def get_latest_imerg_time(run='E', version='07B', opendap=True):
     """Returns a pandas time stamp representing the latest available data"""
     if opendap:
         url = get_latest_imerg_url(run=run, version=version)
@@ -221,7 +221,7 @@ def get_smap(
     return smap.rename(y='lat', x='lon')
 
 def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
-        liquid=True, load=True, run='E', version='06E', opendap=True, cache_dir='./imerg',
+        liquid=True, load=True, run='E', version='07B', opendap=True, cache_dir='./imerg',
         latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
     """Opens IMERG data"""
     if end_time <= start_time:
@@ -242,9 +242,9 @@ def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp,
     imerg = imerg.sel(time=slice(start_time, end_time))
     imerg = imerg.sel(lat=latitudes, lon=longitudes)
     if liquid: 
-        precipitation = imerg['precipitationCal'] * (imerg['probabilityLiquidPrecipitation'] > 0.5)
+        precipitation = imerg['precipitation'] * (imerg['probabilityLiquidPrecipitation'] > 0.5)
     else: 
-        precipitation = imerg['precipitationCal']
+        precipitation = imerg['precipitation']
     if load: 
         precipitation.load()
     return precipitation
@@ -491,8 +491,8 @@ if __name__ == "__main__":
         help='minimum longitude (WGS84)')
     parser.add_argument('-sv', '--smap_version', default='7031',
         help='SMAP L4 major and minor version, e.g. 7031')
-    parser.add_argument('-iv', '--imerg_version', default='06E',
-        help='IMERG version, e.g. 06E')
+    parser.add_argument('-iv', '--imerg_version', default='07B',
+        help='IMERG version, e.g. 07B')
     parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
         help='Days of IMERG data to cache.')
     parser.add_argument('-scd', '--smap_cache_days', type=int,  default=0, 
