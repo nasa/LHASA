@@ -102,7 +102,7 @@ Although version 2 surpasses version 1 in accuracy and features, some users may 
 
 Legacy code for LHASA version 1.1.1 is available [here](https://github.com/nasa/LHASA/releases/tag/v1.1.1). The R scripts are written to be easily understood, executed, and modified by potential users of this research.
 
-Full operational code for LHASA 1.0 is available in python at https://github.com/vightel/ojo-bot. 
+Code for LHASA 1.0 is available in python at https://github.com/vightel/ojo-processing. 
 
 ### Data files
 
