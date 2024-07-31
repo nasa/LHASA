@@ -141,7 +141,7 @@ def get_latest_imerg_time(run='E', version='07B', opendap=True):
         now = pd.Timestamp.now(tz='UTC').floor('30min')
         for i in range(6, 48):
             t = now - pd.Timedelta(hours=i/2)
-            url = build_imerg_url(t, run=run, version=version, opendap=False)
+            url = build_imerg_url(t, run=run, version=version)
             if requests.get(url).ok: 
                 return t.tz_localize(None)
         raise RuntimeError(f'No IMERG data available at {url}')
@@ -478,7 +478,7 @@ def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
         cache_start_time = cache_end_time - pd.DateOffset(days=cache_days)
         df = pd.DataFrame({'file': files})
         df['time'] = df['file'].apply(lambda x: 
-            pd.Timestamp(x[-40:-24].replace('-S', ' ')))
+            pd.Timestamp(x[-50:-34].replace('-S', ' ')))
         excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
         excess.map(os.remove)
 
