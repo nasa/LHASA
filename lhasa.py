@@ -26,7 +26,6 @@ import io
 import logging
 import os.path
 import warnings
-import xml.etree.ElementTree as ET
 import zipfile
 
 import numpy as np
@@ -37,7 +36,6 @@ import xarray as xr
 import xgboost as xgb
 
 NO_DATA = -9999.0
-OPENDAP_URL = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap'
 PPS_URL = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/'
 
 def build_imerg_url(start_time, run="E", version="07B", liquid=True):
@@ -85,66 +83,17 @@ def download_imerg(url, path="./imerg"):
     return file_path
 
 
-def get_latest_imerg_year(run='E', version='07'):
-    """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
-    url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml'
-    catalog = ET.fromstring(requests.get(url).content)
-    name_space = {'thredds': 'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'}
-    for dataset in reversed(catalog.findall(
-            'thredds:dataset/thredds:catalogRef', 
-            name_space)):
-        year = dataset.attrib['name']
-        if year.isnumeric():
-            return int(year)
-    raise RuntimeError(f'cannot parse imerg catalog at {url}')
-
-# TODO: remove opendap from this process
-def get_latest_imerg_url(run='E', version='07'):
-    """Returns a path to the latest 30-minute IMERG data at GES-DISC OpenDAP"""
-    version = str(version)[:2].zfill(2)
-    year = get_latest_imerg_year(run=run, version=version)
-    url = (f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/{year}'
-        '/catalog.xml')
-    catalog = ET.fromstring(requests.get(url).content)
-    name_space = {
-        'thredds': 
-        'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'
-    }
-    datasets = reversed(catalog.findall(
-        'thredds:dataset/thredds:dataset', 
-        name_space
-    ))
-    for dataset in datasets: 
-        day_url = f"{OPENDAP_URL}{dataset[2].attrib['urlPath']}"
-        try: # Some catalog entries are empty
-            xr.open_dataset(day_url)
-        except (KeyError, OSError):
-            continue
-        return day_url
-    raise RuntimeError(f'Cannot parse imerg catalog at {url}')
-
-def get_latest_imerg_time(run='E', version='07B', opendap=True):
+def get_latest_imerg_time(run="E", version="07B"):
     """Returns a pandas time stamp representing the latest available data"""
-    if opendap:
-        url = get_latest_imerg_url(run=run, version=version)
-        imerg = xr.open_dataset(f'{url}')
-        latest = imerg['time'].max()
-        t = pd.Timestamp(
-            year=int(latest.dt.year),
-            month=int(latest.dt.month),
-            day=int(latest.dt.day),
-            hour=int(latest.dt.hour),
-            minute=int(latest.dt.minute)
-        )
-        return t
-    else:
-        now = pd.Timestamp.now(tz='UTC').floor('30min')
-        for i in range(6, 48):
-            t = now - pd.Timedelta(hours=i/2)
-            url = build_imerg_url(t, run=run, version=version)
-            if requests.get(url).ok: 
-                return t.tz_localize(None)
-        raise RuntimeError(f'No IMERG data available at {url}')
+    now = pd.Timestamp.now(tz="UTC").ceil("3h") + pd.Timedelta(minutes=30)
+    for i in range(2, 17):
+        t = now - pd.Timedelta(hours=i * 3)
+        url = build_imerg_url(t, run=run, version=version)
+        if requests.get(url).ok:
+            url_t = pd.Timestamp(url[-43:-27].replace("-S", " "))
+            return url_t.tz_localize(None)
+    raise RuntimeError(f"No IMERG data available at {url}")
+
 
 def get_valid_SMAP_time(start_time):
     day = start_time.strftime('%Y-%m-%d')
@@ -572,7 +521,7 @@ if __name__ == "__main__":
         forecast_start_time = pd.Timestamp(args.date)
     else:
         forecast_start_time = (
-            get_latest_imerg_time(run='E', opendap=args.opendap) 
+            get_latest_imerg_time(run='E', version=args.imerg_version)
             + pd.Timedelta(minutes=30)
         )
     if args.lead > 0:
