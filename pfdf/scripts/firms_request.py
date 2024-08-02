@@ -88,7 +88,7 @@ if __name__ == '__main__':
         "-v",
         "--version",
         action="version",
-        version="LHASA version 2.0.1",
+        version="LHASA version 2.1",
     )
     parser.add_argument(
         "-p",
