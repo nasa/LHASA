@@ -137,7 +137,7 @@ def get_smap(
     if opendap:
         try:
             smap = xr.open_dataset(url)
-        except:
+        except OSError:
             logging.warning('SMAP data is not available for'
                 ' the specified time and version.')
             for i in range(1, 17): # Look back 2 more days
@@ -266,7 +266,7 @@ def get_latest_GEOS_run_time(end_time=None):
                 geos = xr.open_dataset(url)
             if geos: 
                 break
-        except:
+        except OSError:
             latest = None
             continue
     return latest
@@ -453,7 +453,8 @@ if __name__ == "__main__":
     parser.add_argument('-op', '--output_path', help='location of output files')
     parser.add_argument('-d', '--date', 
         help='UTC date and time, formatted as "YYYY-MM-DD HH:MM", assumes '
-        'latest available if unspecified')
+        'latest available if unspecified. This represents the end time of the'
+        'NRT product and the start time of the forecast product.')
     parser.add_argument('-l', '--lead', type=int,  default=2, 
         help='Days of forecast to generate. 0 means only LHASA-NRT will run.')
     parser.add_argument('-rt', '--run_time', 
@@ -642,7 +643,7 @@ if __name__ == "__main__":
         forecast_start_time - pd.DateOffset(1), 
         precipitation_end_date - pd.DateOffset(1)
     )
-    for i, d in enumerate(daily_rain[2:]): 
+    for i, d in enumerate(daily_rain[2:(3+args.lead)]): 
         date_string = dates[i].strftime('%Y%m%dT%H%M')
         run_mode = "nrt" if i < 1 else "fcast"
         if run_mode == 'fcast':
