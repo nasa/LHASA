@@ -582,7 +582,7 @@ if __name__ == "__main__":
 
     imerg_late = get_IMERG_precipitation(
         precipitation_start_date,
-        precipitation_end_date - pd.DateOffset(1),
+        forecast_start_time - pd.DateOffset(1),
         liquid=True,
         load=False,
         run="L",
@@ -592,8 +592,8 @@ if __name__ == "__main__":
         longitudes=slice(args.west, args.east),
     )
     imerg_early = get_IMERG_precipitation(
-        precipitation_end_date - pd.DateOffset(1),
-        precipitation_end_date,
+        forecast_start_time - pd.DateOffset(1),
+        forecast_start_time,
         liquid=True,
         load=False,
         run="E",
@@ -676,12 +676,9 @@ if __name__ == "__main__":
         if run_mode == "nrt": 
             rain = d.sortby('lat').reindex_like(p99, method='nearest') / p99
             if args.opendap:
-                smap_variables=[
-                    'Geophysical_Data_sm_profile_wetness', 
-                    'Geophysical_Data_snow_mass'
-                ]
+                smap_variables = ["Geophysical_Data_sm_profile_wetness"]
             else:
-                smap_variables=['sm_profile_wetness', 'snow_mass']
+                smap_variables = ["sm_profile_wetness"]
             smap = get_smap(
                 start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
                 variables=smap_variables, 
@@ -698,10 +695,8 @@ if __name__ == "__main__":
                 else:
                     raise SystemExit('LHASA halted because SMAP is unavailable.')
             moisture = smap[smap_variables[0]]
-            snow = smap[smap_variables[1]]
             # Match variable names in GEOS
             moisture.name = 'gwetprof'
-            snow.name = 'snomas'
         else: 
             moisture = get_GEOS_variable(
                 start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
@@ -711,17 +706,9 @@ if __name__ == "__main__":
                 latitudes=slice(args.south, args.north), 
                 longitudes=slice(args.west, args.east)
             )
-            snow = get_GEOS_variable(
-                start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
-                run_time=run_time, 
-                variable='snomas', 
-                mode='assim', 
-                latitudes=slice(args.south, args.north), 
-                longitudes=slice(args.west, args.east)
-            )
             rain = d.interp_like(p99geos, method='nearest') / p99geos
         rain.name = 'rain'
-        dynamic_variables = [rain, antecedent, moisture, snow]
+        dynamic_variables = [rain, antecedent, moisture]
         transposed = [v.transpose('lat', 'lon') for v in dynamic_variables]
         logging.info('opened ' + date_string)
         regridded = xr.merge([regrid(v, static_variables) for v in transposed])
@@ -732,7 +719,6 @@ if __name__ == "__main__":
             "Slope",
             "pga",
             "gwetprof",
-            "snomas",
             "antecedent",
             "rain",
         ]
