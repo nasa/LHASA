@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1] - 2024-8-2
 
+### Added
+
+- Slope threshold parameter to CLI.
+
 ### Changed
 
 - Reduced size of exposure table.

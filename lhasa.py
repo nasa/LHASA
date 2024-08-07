@@ -464,6 +464,13 @@ if __name__ == "__main__":
         help='assumed false if this option is not provided')
     parser.add_argument('--small', action="store_true", 
         help='shrinks output file size by masking where p_landslide < 0.01')
+    parser.add_argument(
+        "-st",
+        "--slope_threshold",
+        type=float,
+        default=10.0,
+        help="Slope angle (degrees) below which predictions will not be shown",
+    )
     parser.add_argument('-t', '--threads', type=int,  default=4, 
         help='Number of threads to use. Currently, this only affects XGBoost.')
     parser.add_argument('-f', '--format', default='nc4', 
@@ -734,7 +741,14 @@ if __name__ == "__main__":
         prediction = model.predict(inputs)
         logging.info('made predictions')
         p_landslide = fill_array(prediction, static_variables['land_mask'] > 0, dates[i])
+        p_landslide = p_landslide.where(static_variables['Slope'] > args.slope_threshold)
         if args.small:
+            warnings.warn(
+                ("The --small command-line argument will be removed in a future"
+                " version of LHASA. Use the slope threshold instead. E.g.:  "
+                "(python lhasa.py -st 15)"),
+                category=FutureWarning,
+            )
             p_landslide = p_landslide.where(p_landslide >= 0.01)
         if nc_path:
             save_nc(p_landslide.to_dataset(), nc_path)
