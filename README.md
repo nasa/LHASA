@@ -78,7 +78,7 @@ Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide N
 
 ### Model training
 
-The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://freshwater.eis.smce.nasa.gov/storymap.html?story=ls) project funded by NASA. 
+The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.smce.nasa.gov/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://freshwater.eis.smce.nasa.gov/storymap.html?story=ls) project funded by NASA. 
 
 ### Archive
 
