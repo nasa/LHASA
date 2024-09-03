@@ -20,121 +20,85 @@
 Functions and script for running LHASA 
 """
 
+import argparse
+import glob
+import io
 import logging
 import os.path
-import glob
-import argparse
-import requests
+import warnings
+import zipfile
+
 import numpy as np
+import pandas as pd
+import requests
+import rioxarray
 import xarray as xr
 import xgboost as xgb
-import pandas as pd
-import affine
-import rasterio
-import xml.etree.ElementTree as ET
-import warnings
 
 NO_DATA = -9999.0
-OPENDAP_URL = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap'
 PPS_URL = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/'
 
-def build_imerg_url(start_time, run='E', version='06E', opendap=True):
+def build_imerg_url(start_time, run="E", version="07B", liquid=True):
     """Build URL to IMERG data"""
-    if opendap:
-        product = f'GPM_3IMERGHH{run}.{version[:2]}'
-        url = (f'{OPENDAP_URL}/ncml/aggregation/{product}/{start_time.year}/'
-            f'{product}_Aggregation_{start_time.year}{start_time.dayofyear:03}'
-            '.ncml')
+    start_time = start_time.ceil("3h") - pd.Timedelta(minutes=30)
+    end = start_time + pd.Timedelta(minutes=29, seconds=59)
+    if liquid:
+        extension = ".zip"
     else:
-        end = start_time + pd.Timedelta(minutes=29, seconds=59)
-        url = (f'{PPS_URL}{"early" if run=="E" else "late"}'
-            f'/{start_time.year}{start_time.month:02}/'
-            f'3B-HHR-{run}.MS.MRG.3IMERG.'
-            f'{start_time.year}{start_time.month:02}{start_time.day:02}-S'
-            f'{start_time.hour:02}{start_time.minute:02}{start_time.second:02}'
-            f'-E{end.hour:02}{end.minute:02}{end.second:02}.'
-            f'{start_time.hour*60+start_time.minute:04}.V{version}.RT-H5'
-            )
+        extension = ".tif"
+    url = (
+        f"{PPS_URL}gis/{'early/' if run=='E' else ''}"
+        f"{start_time.year}/{start_time.month:02}/"
+        f"3B-HHR-{run}.MS.MRG.3IMERG."
+        f"{start_time.year}{start_time.month:02}{start_time.day:02}"
+        f"-S{start_time.hour:02}{start_time.minute:02}00"
+        f"-E{end.hour:02}{end.minute:02}59."
+        f"{start_time.hour*60+start_time.minute:04}"
+        f".V{version}.1day{extension}"
+    )
     return url
 
-def download_imerg(url, path='./imerg'):
+
+def download_imerg(url, path="./imerg"):
     """Downloads and saves IMERG file"""
-    file_name = url[url.rfind('/')+1:len(url)]
-    file_path = os.path.join(path, file_name)
+    file_name = os.path.basename(url)
+    extension = os.path.splitext(url)[1]
+    if extension == ".tif":
+        tif_name = file_name
+    else:
+        tif_name = file_name.replace(".zip", ".liquid.tif")
+    file_path = os.path.join(path, tif_name)
     if not os.path.exists(file_path):
         r = requests.get(url)
         if r.ok:
             os.makedirs(path, exist_ok=True)
-            with open(file_path, 'wb') as f:
-                f.write(r.content)
-        else: 
-            raise RuntimeError(f'{r.status_code}: could not download{r.url}')
+            if extension == ".tif":
+                with open(file_path, "wb") as f:
+                    f.write(r.content)
+            else:
+                zipped = zipfile.ZipFile(io.BytesIO(r.content))
+                zipped.extract(tif_name, path)
+        else:
+            raise RuntimeError(f"{r.status_code}: could not download {r.url}")
     return file_path
 
-def get_latest_imerg_year(run='E', version='06'):
-    """Finds the last year IMERG data is available at GES-DISC OpenDAP"""
-    url = f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/catalog.xml'
-    catalog = ET.fromstring(requests.get(url).content)
-    name_space = {'thredds': 'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'}
-    for dataset in reversed(catalog.findall(
-            'thredds:dataset/thredds:catalogRef', 
-            name_space)):
-        year = dataset.attrib['name']
-        if year.isnumeric():
-            return int(year)
-    raise RuntimeError(f'cannot parse imerg catalog at {url}')
 
-def get_latest_imerg_url(run='E', version='06'):
-    """Returns a path to the latest 30-minute IMERG data at GES-DISC OpenDAP"""
-    version = str(version)[:2].zfill(2)
-    year = get_latest_imerg_year(run=run, version=version)
-    url = (f'{OPENDAP_URL}/ncml/aggregation/GPM_3IMERGHH{run}.{version}/{year}'
-        '/catalog.xml')
-    catalog = ET.fromstring(requests.get(url).content)
-    name_space = {
-        'thredds': 
-        'http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0'
-    }
-    datasets = reversed(catalog.findall(
-        'thredds:dataset/thredds:dataset', 
-        name_space
-    ))
-    for dataset in datasets: 
-        day_url = f"{OPENDAP_URL}{dataset[2].attrib['urlPath']}"
-        try: # Some catalog entries are empty
-            xr.open_dataset(day_url)
-        except (KeyError, OSError):
-            continue
-        return day_url
-    raise RuntimeError(f'Cannot parse imerg catalog at {url}')
-
-def get_latest_imerg_time(run='E', version='06E', opendap=True):
+def get_latest_imerg_time(run="E", version="07B"):
     """Returns a pandas time stamp representing the latest available data"""
-    if opendap:
-        url = get_latest_imerg_url(run=run, version=version)
-        imerg = xr.open_dataset(f'{url}')
-        latest = imerg['time'].max()
-        t = pd.Timestamp(
-            year=int(latest.dt.year),
-            month=int(latest.dt.month),
-            day=int(latest.dt.day),
-            hour=int(latest.dt.hour),
-            minute=int(latest.dt.minute)
-        )
-        return t
-    else:
-        now = pd.Timestamp.now(tz='UTC').floor('30min')
-        for i in range(6, 48):
-            t = now - pd.Timedelta(hours=i/2)
-            url = build_imerg_url(t, run=run, version=version, opendap=False)
-            if requests.get(url).ok: 
-                return t.tz_localize(None)
-        raise RuntimeError(f'No IMERG data available at {url}')
+    now = pd.Timestamp.now(tz="UTC").ceil("3h") + pd.Timedelta(minutes=30)
+    for i in range(2, 17):
+        t = now - pd.Timedelta(hours=i * 3)
+        url = build_imerg_url(t, run=run, version=version)
+        if requests.get(url).ok:
+            url_t = pd.Timestamp(url[-43:-27].replace("-S", " "))
+            return url_t.tz_localize(None)
+    raise RuntimeError(f"No IMERG data available at {url}")
+
 
 def get_valid_SMAP_time(start_time):
     day = start_time.strftime('%Y-%m-%d')
     hours = pd.date_range(day +" 01:30", periods=9, freq="3h")
-    return hours[hours.get_loc(start_time, method = 'nearest')]
+    return hours[hours.get_indexer([start_time], method = 'nearest')[0]]
 
 def build_smap_url(t, version='7', minor_version='030', opendap=True):
     """Build URL to SMAP data"""
@@ -173,7 +137,7 @@ def get_smap(
     if opendap:
         try:
             smap = xr.open_dataset(url)
-        except:
+        except OSError:
             logging.warning('SMAP data is not available for'
                 ' the specified time and version.')
             for i in range(1, 17): # Look back 2 more days
@@ -221,43 +185,69 @@ def get_smap(
         smap.load()
     return smap.rename(y='lat', x='lon')
 
-def get_IMERG_precipitation(start_time: pd.Timestamp, end_time: pd.Timestamp, 
-        liquid=True, load=True, run='E', version='06E', opendap=True, cache_dir='./imerg',
-        latitudes=slice(-60, 60), longitudes=slice(-180, 180)):
+def load_imerg_tiff(
+    file_path: str,
+    latitudes=slice(60, -60),
+    longitudes=slice(-180, 180),
+) -> xr.DataArray:
+    """Open IMERG geotiff file"""
+    imerg = xr.open_dataarray(file_path, engine="rasterio")
+    imerg.name = "precipitation"
+    selected = imerg.sel(x=longitudes, y=latitudes).squeeze().drop_vars("band")
+    renamed = selected.rename({"x": "lon", "y": "lat"})
+    return renamed
+
+
+def get_IMERG_precipitation(
+    start_time: pd.Timestamp,
+    end_time: pd.Timestamp,
+    liquid=True,
+    load=True,
+    run="E",
+    version="07B",
+    cache_dir="./imerg",
+    latitudes=slice(-60, 60),
+    longitudes=slice(-180, 180),
+):
     """Opens IMERG data"""
     if end_time <= start_time:
-        raise ValueError('End time must be later than start time')
-    if opendap:
-        days = pd.date_range(start_time, end_time, freq='D')
-        files = [build_imerg_url(d, run=run, version=version) for d in days]
-        imerg = xr.open_mfdataset(files, parallel=True)
-    else:
-        half_hours = pd.date_range(start_time, end_time - pd.Timedelta(minutes=30), freq='30min')
-        urls = [build_imerg_url(h, run=run, version=version, opendap=False) for h in half_hours]
-        files = [download_imerg(u, path=cache_dir) for u in urls]
-        imerg = xr.open_mfdataset(files, group='Grid', parallel=True)
-    with warnings.catch_warnings():
-        warnings.filterwarnings(action='ignore', category=RuntimeWarning)
-        warnings.filterwarnings(action='ignore', category=FutureWarning)
-        imerg['time'] = imerg.indexes['time'].to_datetimeindex()
-    imerg = imerg.sel(time=slice(start_time, end_time))
-    imerg = imerg.sel(lat=latitudes, lon=longitudes)
-    if liquid: 
-        precipitation = imerg['precipitationCal'] * (imerg['probabilityLiquidPrecipitation'] > 0.5)
-    else: 
-        precipitation = imerg['precipitationCal']
-    if load: 
+        raise ValueError("End time must be later than start time")
+    days = pd.date_range(start_time, end_time, freq="D", inclusive="left")
+    urls = [
+        build_imerg_url(
+            d,
+            run=run,
+            version=version,
+            liquid=liquid,
+        )
+        for d in days
+    ]
+    files = [download_imerg(u, path=cache_dir) for u in urls]
+    arrays = [
+        load_imerg_tiff(
+            f,
+            # geotiff y (latitude) coordinates don't match other fields
+            latitudes=slice(latitudes.stop, latitudes.start),
+            longitudes=longitudes,
+        )
+        for f in files
+    ]
+    imerg = xr.concat(arrays, dim="time")
+    imerg["time"] = days
+    precipitation = imerg / 10  # the geotiffs are stored in 0.1 mm
+    if load:
         precipitation.load()
     return precipitation
 
-def build_GEOS_url(run_time=None, mode='fcast'):
+
+def build_GEOS_url(run_time=None, mode="fcast"):
     """Build string for the GEOS OpenDAP server at the NCCS Data Portal"""
     if mode == 'fcast':
-        if run_time == None:
+        if run_time is None:
             raise ValueError('GEOS FP model run time must be specified for forecast mode')
         return f'https://opendap.nccs.nasa.gov/dods/GEOS-5/fp/0.25_deg/fcast/'\
             f'tavg1_2d_lnd_Nx/tavg1_2d_lnd_Nx.{run_time.year}{run_time.month:02}{run_time.day:02}'\
-            f'_{run_time.round("6H").hour:02}'
+            f'_{run_time.round("6h").hour:02}'
     if mode == 'assim':
         return 'https://opendap.nccs.nasa.gov/dods/GEOS-5/fp/0.25_deg/assim/tavg1_2d_lnd_Nx'
 
@@ -268,7 +258,7 @@ def get_latest_GEOS_run_time(end_time=None):
     else:
         now = pd.Timestamp.now(tz='UTC')
     for i in range(0, 5):
-        latest = now.floor('6H') - pd.Timedelta(hours=i*6)
+        latest = now.floor('6h') - pd.Timedelta(hours=i*6)
         url = build_GEOS_url(latest)
         try:
             with warnings.catch_warnings():
@@ -276,7 +266,7 @@ def get_latest_GEOS_run_time(end_time=None):
                 geos = xr.open_dataset(url)
             if geos: 
                 break
-        except:
+        except OSError:
             latest = None
             continue
     return latest
@@ -291,7 +281,7 @@ def get_GEOS_variable(start_time: pd.Timestamp, run_time=None,
         geos = xr.open_dataset(url)
     geos = geos.sel(time=start_time, method='nearest')
     geos = geos.sel(lon=longitudes, lat=latitudes)
-    return geos[variable].drop('time')
+    return geos[variable].drop_vars('time')
 
 def get_GEOS_run(run_time: pd.Timestamp, mode='fcast'):
     url = build_GEOS_url(run_time=run_time, mode=mode)
@@ -330,11 +320,11 @@ def fill_array(prediction, mask, start_time):
 
 def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     """Adds metadata for compliance with CF and GES-DISC standards"""
-    now = pd.datetime.now().strftime('%Y-%m-%dT%H:%M:%S:%fZ')
+    now = pd.Timestamp.now().strftime('%Y-%m-%dT%H:%M:%S:%fZ')
     data_set.attrs["ProductionDateTime"] = now
     data_set.attrs['title'] = 'Landslide Hazard Analysis for Situational Awareness'
     data_set.attrs['institution'] = 'NASA GSFC'
-    data_set.attrs['source'] = 'LHASA V2.0.0'
+    data_set.attrs['source'] = 'LHASA V2.1'
     data_set.attrs["history"] = f"{now} File written by XArray version {xr.__version__}"
     if run_mode == 'nrt': 
         data_set.attrs['references'] = (
@@ -353,7 +343,7 @@ def add_metadata(data_set: xr.Dataset,  run_mode='nrt'):
     data_set.attrs['Conventions'] = 'CF-1.8'
     data_set.attrs['ShortName'] = 'LHASA'
     data_set.attrs['LongName'] = 'Landslide Hazard Analysis for Situational Awareness (LHASA)'
-    data_set.attrs['VersionID'] = '2.0.0'
+    data_set.attrs['VersionID'] = '2.1'
     data_set.attrs['Format'] = 'netCDF-4'
     data_set.attrs['DataSetQuality'] = 'NRT'
     data_set.attrs['IdentifierProductDOIAuthority'] = 'https://doi.org/'
@@ -391,31 +381,13 @@ def save_nc(data_set: xr.Dataset, file_path: str, run_mode='nrt'):
         'lon': {'zlib': False, '_FillValue': None}
     })
 
-def save_tiff(data_array, file_path):
+def save_tiff(data_array: xr.DataArray, file_path: str):
     """Saves prediction in geotiff format"""
-    
-    cell_size = 0.00833333333333333
-    metadata = {
-        'driver': 'GTiff', 
-        'compress': 'lzw',
-        'dtype': data_array.dtype, 
-        'nodata': -9999.0, 
-        'width': data_array['lon'].size, 
-        'height': data_array['lat'].size, 
-        'count': 1, 
-        'crs': 'EPSG:4326', 
-        'transform': affine.Affine(
-            cell_size, 
-            0.0, 
-            data_array['lon'].min() - cell_size/2, 
-            0.0, 
-            -cell_size, 
-            data_array['lat'].max() + cell_size/2), 
-        'tiled': False, 
-        'interleave': 'band'
-    }
-    with rasterio.open(file_path, 'w', **metadata) as dst:
-        dst.write(data_array.values)
+    data_array.rio.write_nodata(NO_DATA, inplace=True)
+    data_array.rio.write_crs(4326, inplace=True)
+    data_array = data_array.rename(lat="latitude", lon="longitude")
+    data_array.rio.to_raster(file_path)
+
 
 def get_model(file_path, threads=1):
     """Open trained model"""
@@ -434,7 +406,7 @@ def expose(hazard: xr.DataArray, variables: xr.Dataset,
         for v in selection:
             v_name = f"{k}_haz_{'pp' if v == 'population' else 'rd'}"
             variables[v_name] = variables[v] * variables[f'{k}_haz']
-    variables = variables.drop(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
+    variables = variables.drop_vars(['time', 'lat', 'lon', 'road_length', 'population']).squeeze()
     return variables
 
 def add_ratios(totals, thresholds={'l': 0.1, 'm': 0.5, 'h': 0.9}, 
@@ -455,7 +427,7 @@ def imerg_cleanup(path: str, cache_days=0, cache_end_time=None):
         cache_start_time = cache_end_time - pd.DateOffset(days=cache_days)
         df = pd.DataFrame({'file': files})
         df['time'] = df['file'].apply(lambda x: 
-            pd.Timestamp(x[-40:-24].replace('-S', ' ')))
+            pd.Timestamp(x[-50:-34].replace('-S', ' ')))
         excess = df['file'][~df['time'].between(cache_start_time, cache_end_time)]
         excess.map(os.remove)
 
@@ -475,13 +447,14 @@ def smap_cleanup(path: str, cache_days=0, cache_end_time=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='LHASA 2.0 global landslide forecast')
     parser.add_argument('-v', '--version', action='version', 
-        version='LHASA version 2.0.0')
+        version='LHASA version 2.1')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
         help='location of input files')
     parser.add_argument('-op', '--output_path', help='location of output files')
     parser.add_argument('-d', '--date', 
         help='UTC date and time, formatted as "YYYY-MM-DD HH:MM", assumes '
-        'latest available if unspecified')
+        'latest available if unspecified. This represents the end time of the'
+        'NRT product and the start time of the forecast product.')
     parser.add_argument('-l', '--lead', type=int,  default=2, 
         help='Days of forecast to generate. 0 means only LHASA-NRT will run.')
     parser.add_argument('-rt', '--run_time', 
@@ -491,6 +464,13 @@ if __name__ == "__main__":
         help='assumed false if this option is not provided')
     parser.add_argument('--small', action="store_true", 
         help='shrinks output file size by masking where p_landslide < 0.01')
+    parser.add_argument(
+        "-st",
+        "--slope_threshold",
+        type=float,
+        default=10.0,
+        help="Slope angle (degrees) below which predictions will not be shown",
+    )
     parser.add_argument('-t', '--threads', type=int,  default=4, 
         help='Number of threads to use. Currently, this only affects XGBoost.')
     parser.add_argument('-f', '--format', default='nc4', 
@@ -508,14 +488,24 @@ if __name__ == "__main__":
         help='maximum longitude (WGS84)')
     parser.add_argument('-W', '--west', type=float,  default=-180.0, 
         help='minimum longitude (WGS84)')
-    parser.add_argument('-sv', '--smap_version', default='7030',
-        help='SMAP L4 major and minor version, e.g. 7030')
-    parser.add_argument('-iv', '--imerg_version', default='06E',
-        help='IMERG version, e.g. 06E')
-    parser.add_argument('-icd', '--imerg_cache_days', type=int,  default=0, 
-        help='Days of IMERG data to cache.')
-    parser.add_argument('-scd', '--smap_cache_days', type=int,  default=0, 
-        help='Days of SMAP data to cache.')
+    parser.add_argument('-sv', '--smap_version', default='7031',
+        help='SMAP L4 major and minor version, e.g. 7031')
+    parser.add_argument('-iv', '--imerg_version', default='07B',
+        help='IMERG version, e.g. 07B')
+    parser.add_argument(
+        "-icd",
+        "--imerg_cache_days",
+        type=int,
+        default=7,
+        help="Days of IMERG data to cache.",
+    )
+    parser.add_argument(
+        "-scd",
+        "--smap_cache_days",
+        type=int,
+        default=7,
+        help="Days of SMAP data to cache.",
+    )
     parser.add_argument('-od', '--opendap', action='store_true',
         help='Use OpenDAP to access IMERG; LHASA defaults to HDF5 download')
     args = parser.parse_args()
@@ -539,14 +529,14 @@ if __name__ == "__main__":
         forecast_start_time = pd.Timestamp(args.date)
     else:
         forecast_start_time = (
-            get_latest_imerg_time(run='E', opendap=args.opendap) 
+            get_latest_imerg_time(run='E', version=args.imerg_version)
             + pd.Timedelta(minutes=30)
         )
     if args.lead > 0:
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
-        forecast_start_time = forecast_start_time.floor('H')
+        forecast_start_time = forecast_start_time.floor('h')
         if args.run_time:
-            run_time = pd.Timestamp(args.run_time).floor('6H')
+            run_time = pd.Timestamp(args.run_time).floor('6h')
             if run_time > forecast_start_time:
                 raise ValueError("Forecast must start later than GEOS-FP run time")
         else:
@@ -559,7 +549,7 @@ if __name__ == "__main__":
 
     model = get_model(f'{path}/model.json', args.threads)
 
-    static_files = [f'{path}/static/Faults.nc4',
+    static_files = [f'{path}/static/pga.nc4',
         f'{path}/static/Lithology.nc4',
         f'{path}/static/Slope.nc4',
         f'{path}/static/mask.nc4']
@@ -568,15 +558,13 @@ if __name__ == "__main__":
         lat=slice(args.south, args.north), 
         lon=slice(args.west, args.east)
     )
-    static_variables.load()
     p99 = xr.open_dataarray(f'{path}/static/p99.nc4')
     p99 = p99.sel(
         lat=slice(args.south, args.north), 
         lon=slice(args.west, args.east)
     ).load()
     if args.lead > 0:
-        #TODO: Replace with file at native resolution
-        p99geos = xr.open_dataarray(f'{path}/static/p99GEOS_latest.nc4')
+        p99geos = xr.open_dataarray(f'{path}/static/p99geos.nc4')
         p99geos = p99geos.sel(
             lat=slice(args.south, args.north), 
             lon=slice(args.west, args.east)
@@ -596,45 +584,32 @@ if __name__ == "__main__":
         admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
     logging.info('opened static variables')
 
-    imerg_late_end_time =(
-            get_latest_imerg_time(run='L', opendap=args.opendap) 
-            + pd.Timedelta(minutes=30)
-    )
     precipitation_start_date = forecast_start_time - pd.DateOffset(3)
     precipitation_end_date = forecast_start_time + pd.DateOffset(args.lead)
 
     imerg_late = get_IMERG_precipitation(
-        precipitation_start_date, 
-        min(precipitation_end_date, imerg_late_end_time), 
-        liquid=True, 
-        load=False, 
-        run='L', 
-        version=args.imerg_version, 
-        opendap=args.opendap,
-        cache_dir=os.path.join(path, 'imerg'),
-        latitudes=slice(args.south, args.north), 
-        longitudes=slice(args.west, args.east)
+        precipitation_start_date,
+        forecast_start_time - pd.DateOffset(1),
+        liquid=True,
+        load=False,
+        run="L",
+        version=args.imerg_version,
+        cache_dir=os.path.join(path, "imerg"),
+        latitudes=slice(args.south, args.north),
+        longitudes=slice(args.west, args.east),
     )
-
-    if imerg_late_end_time < forecast_start_time:
-        imerg_early = get_IMERG_precipitation(
-            max(precipitation_start_date, imerg_late_end_time), 
-            forecast_start_time, 
-            liquid=True, 
-            load=False, 
-            run='E', 
-            version=args.imerg_version, 
-            opendap=args.opendap,
-            cache_dir=os.path.join(path, 'imerg'),
-            latitudes=slice(args.south, args.north), 
-            longitudes=slice(args.west, args.east)
-        )
-        imerg = xr.concat([imerg_late, imerg_early], dim='time')
-    else:
-        imerg = imerg_late
-
-    imerg_daily = imerg.resample({'time': '24H'}, 
-        base=forecast_start_time.hour).sum().load()
+    imerg_early = get_IMERG_precipitation(
+        forecast_start_time - pd.DateOffset(1),
+        forecast_start_time,
+        liquid=True,
+        load=False,
+        run="E",
+        version=args.imerg_version,
+        cache_dir=os.path.join(path, "imerg"),
+        latitudes=slice(args.south, args.north),
+        longitudes=slice(args.west, args.east),
+    )
+    imerg = xr.concat([imerg_late, imerg_early], dim="time")
 
     if args.lead > 0:
         geos_run_times = [run_time, run_time - pd.Timedelta(hours=6)]
@@ -666,16 +641,16 @@ if __name__ == "__main__":
 
         geos = xr.concat(selected_geos_precip, dim='time').sortby('time')
         geos_daily = geos.resample({'time': '24H'}, 
-            base=forecast_start_time.hour).sum().load()
-        daily_rain = [da for da in imerg_daily] + [da for da in geos_daily]
+            offset=pd.Timedelta(f'{forecast_start_time.hour}h')).sum().load()
+        daily_rain = [da for da in imerg] + [da for da in geos_daily]
     else: 
-        daily_rain = [da for da in imerg_daily]
+        daily_rain = [da for da in imerg]
         
     dates = pd.date_range(
         forecast_start_time - pd.DateOffset(1), 
         precipitation_end_date - pd.DateOffset(1)
     )
-    for i, d in enumerate(daily_rain[2:]): 
+    for i, d in enumerate(daily_rain[2:(3+args.lead)]): 
         date_string = dates[i].strftime('%Y%m%dT%H%M')
         run_mode = "nrt" if i < 1 else "fcast"
         if run_mode == 'fcast':
@@ -705,16 +680,12 @@ if __name__ == "__main__":
         antecedent = xr.concat([yesterday, day_before], dim='time').sum('time')
         antecedent.name = 'antecedent'
 
-        rain = d
         if run_mode == "nrt": 
-            rain = rain.interp_like(p99, method='nearest') / p99
+            rain = d.sortby('lat').reindex_like(p99, method='nearest') / p99
             if args.opendap:
-                smap_variables=[
-                    'Geophysical_Data_sm_profile_wetness', 
-                    'Geophysical_Data_snow_mass'
-                ]
+                smap_variables = ["Geophysical_Data_sm_profile_wetness"]
             else:
-                smap_variables=['sm_profile_wetness', 'snow_mass']
+                smap_variables = ["sm_profile_wetness"]
             smap = get_smap(
                 start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
                 variables=smap_variables, 
@@ -731,10 +702,8 @@ if __name__ == "__main__":
                 else:
                     raise SystemExit('LHASA halted because SMAP is unavailable.')
             moisture = smap[smap_variables[0]]
-            snow = smap[smap_variables[1]]
             # Match variable names in GEOS
             moisture.name = 'gwetprof'
-            snow.name = 'snomas'
         else: 
             moisture = get_GEOS_variable(
                 start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
@@ -744,47 +713,49 @@ if __name__ == "__main__":
                 latitudes=slice(args.south, args.north), 
                 longitudes=slice(args.west, args.east)
             )
-            snow = get_GEOS_variable(
-                start_time=dates[i] - pd.Timedelta(days=2, hours=1), 
-                run_time=run_time, 
-                variable='snomas', 
-                mode='assim', 
-                latitudes=slice(args.south, args.north), 
-                longitudes=slice(args.west, args.east)
-            )
             rain = d.interp_like(p99geos, method='nearest') / p99geos
         rain.name = 'rain'
-        dynamic_variables = [rain, antecedent, moisture, snow]
+        dynamic_variables = [rain, antecedent, moisture]
         transposed = [v.transpose('lat', 'lon') for v in dynamic_variables]
         logging.info('opened ' + date_string)
         regridded = xr.merge([regrid(v, static_variables) for v in transposed])
         logging.info('interpolated')
         # It's important to retain the correct variable order
         variable_order = [
-            'rain', 
-            'antecedent', 
-            'gwetprof', 
-            'snomas', 
-            'Faults', 
-            'Lithology', 
-            'Slope'
+            "Lithology",
+            "Slope",
+            "pga",
+            "gwetprof",
+            "antecedent",
+            "rain",
         ]
-        variables = xr.merge([regridded, static_variables.drop('land_mask')])
+        static_variables.load()
+        variables = xr.merge([regridded, static_variables.drop_vars('land_mask')])
         masked_values = [apply_mask(variables[v], mask=(static_variables['land_mask'] > 0)) for v in variable_order]
         logging.info('built mask')
-        inputs = xgb.DMatrix(np.stack(masked_values, 1))
+        inputs = xgb.DMatrix(
+            np.stack(masked_values, 1),
+            feature_names=variable_order,
+            nthread=args.threads,
+        )
         prediction = model.predict(inputs)
         logging.info('made predictions')
         p_landslide = fill_array(prediction, static_variables['land_mask'] > 0, dates[i])
-        # Reindex for faster loading in ArcGIS
-        p_landslide = p_landslide.reindex(time=p_landslide.time, lat=p_landslide.lat[::-1])
+        p_landslide = p_landslide.where(static_variables['Slope'] > args.slope_threshold)
         if args.small:
+            warnings.warn(
+                ("The --small command-line argument will be removed in a future"
+                " version of LHASA. Use the slope threshold instead. E.g.:  "
+                "(python lhasa.py -st 15)"),
+                category=FutureWarning,
+            )
             p_landslide = p_landslide.where(p_landslide >= 0.01)
         if nc_path:
             save_nc(p_landslide.to_dataset(), nc_path)
+            logging.info(f'saved {nc_path}')
         if tif_path:
             save_tiff(p_landslide, tif_path)
-        logging.info('saved output to disk')
+            logging.info(f'saved {tif_path}')
         
         if args.exposure:
             csv_path = os.path.join(
@@ -799,7 +770,7 @@ if __name__ == "__main__":
                     ' argument to overwrite it.')
             # The exposure analysis uses a lot of memory
             del dynamic_variables, transposed, regridded, variables
-            del masked_values, inputs, prediction
+            del inputs
             exposed = expose(p_landslide, assets)
             data_frame = exposed.to_dataframe().dropna()
             totals = data_frame.groupby('gadm_fid').sum()

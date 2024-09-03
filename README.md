@@ -11,7 +11,7 @@ See the [Changelog](https://github.com/nasa/LHASA/blob/master/CHANGELOG.md)
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
 
 ### Real-time data availability
-The latest predictions can be downloaded from https://maps.nccs.nasa.gov/download/landslides/nowcast. It can also be accessed as an ArcGIS web map at https://landslides.nasa.gov/viewer. NASA provides these data on a best-effort basis, typically four times each day, but with frequent server downtime. Users requiring a fully operational system are encouraged to clone this repository and run LHASA at the desired cadence.
+The latest predictions can be downloaded from https://maps.nccs.nasa.gov/download/landslides. It can also be accessed as an ArcGIS web map at https://landslides.nasa.gov/viewer. NASA provides these data on a best-effort basis, typically four times each day, but with frequent server downtime. Users requiring a fully operational system are encouraged to clone this repository and run LHASA at the desired cadence.
 
 ### Data files
 
@@ -78,7 +78,7 @@ Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide N
 
 ### Model training
 
-The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.mysmce.com/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://freshwater.eis.smce.nasa.gov/storymap.html?story=ls) project funded by NASA. 
+The software released here enables the user to run the global landslide forecast, but it does not enable the user to retrain the model on new datasets or domains. However, a demonstration workflow similar to that used in global LHASA 2.0 can be viewed [here](https://git.smce.nasa.gov/eis-freshwater/landslides/-/blob/master/brendan/Landslide-Case-Study.ipynb). This demo was created as part of the [EIS](https://freshwater.eis.smce.nasa.gov/storymap.html?story=ls) project funded by NASA. 
 
 ### Archive
 
@@ -102,7 +102,7 @@ Although version 2 surpasses version 1 in accuracy and features, some users may 
 
 Legacy code for LHASA version 1.1.1 is available [here](https://github.com/nasa/LHASA/releases/tag/v1.1.1). The R scripts are written to be easily understood, executed, and modified by potential users of this research.
 
-Full operational code for LHASA 1.0 is available in python at https://github.com/vightel/ojo-bot. 
+Code for LHASA 1.0 is available in python at https://github.com/vightel/ojo-processing. 
 
 ### Data files
 
