@@ -6,7 +6,7 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 
 See the [Changelog](https://github.com/nasa/LHASA/blob/master/CHANGELOG.md)
 
-## LHASA 2.0
+## LHASA 2.1
 
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
 
