@@ -1,0 +1,12 @@
+services:
+  lhasa:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./.netrc:/root/.netrc:ro
+      # automatically creates the directories if they don't exist on the host
+      - ./output/nrt/hazard/tif:/src/output/nrt/hazard/tif
+      - ./output/nrt/exposure/csv:/src/output/nrt/exposure/csv
+      - ./output/fcast/hazard/tif:/src/output/fcast/hazard/tif
+      - ./output/fcast/exposure/csv:/src/output/fcast/exposure/csv
