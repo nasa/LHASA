@@ -19,7 +19,9 @@ LHASA requires several large data files, but not all data may be needed by all u
 
 ### Installation
 
-After cloning this repository, some setup is required prior to running LHASA. The following commands have been tested in a linux environment. Users of Windows or other systems may be required to modify each of these steps. 
+#### Linux
+
+After cloning this repository, some setup is required prior to running LHASA. The following commands have been tested in a linux environment.
 
     # Set up python environment
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -61,6 +63,54 @@ After cloning this repository, some setup is required prior to running LHASA. Th
 
     # Configure authorization for post-fire debris flow model
     python pfdf/scripts/make_netrc.py
+
+#### Windows
+
+On a Windows machine, use following commands within a *command prompt*:
+
+```
+@REM Set up python environment
+curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
+start /wait Miniconda3-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
+%UserProfile%\Miniconda3\Scripts\conda.exe env create -f lhasa.yml
+
+@REM Manage Earthdata connection
+@REM See for more info: https://disc.gsfc.nasa.gov/data-access
+type nul > %UserProfile%\.urs_cookies
+type nul > %UserProfile%\.netrc
+echo machine urs.earthdata.nasa.gov login <uid> password <password> >> %UserProfile%\.netrc
+type nul > %UserProfile%\.dodsrc
+
+@REM Manage PPS connection, which is only necessary for downloading IMERG HDF5
+@REM See for more info: https://registration.pps.eosdis.nasa.gov/registration/
+echo machine jsimpsonhttps.pps.eosdis.nasa.gov login <email> password <email> >> %UserProfile%\.netrc
+echo HTTP.NETRC=%UserProfile%\.netrc >> %UserProfile%\.dodsrc
+echo HTTP.COOKIEJAR=%UserProfile%\.urs_cookies >> %UserProfile%\.dodsrc
+
+@REM Set up directory structure
+mkdir nrt\hazard\tif
+mkdir nrt\exposure\csv
+mkdir fcast\hazard\tif
+mkdir fcast\exposure\csv
+mkdir imerg
+mkdir smap
+
+@REM Obtain required data files
+curl -O https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip && ^
+tar -xf static.zip && ^
+del static.zip
+
+curl -O https://gpm.nasa.gov/sites/default/files/data/landslides/exposure.zip && ^
+tar -xf exposure.zip && ^
+del exposure.zip
+
+curl -O https://gpm.nasa.gov/sites/default/files/data/landslides/ref_data.zip && ^
+tar -xf ref_data.zip -C pfdf/ && ^
+del ref_data.zip
+
+@REM Configure authorization for post-fire debris flow model
+python pfdf\scripts\make_netrc.py
+```
 
 #### Docker
 
