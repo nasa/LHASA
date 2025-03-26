@@ -10,3 +10,4 @@ services:
       - ./output/nrt/exposure/csv:/src/output/nrt/exposure/csv
       - ./output/fcast/hazard/tif:/src/output/fcast/hazard/tif
       - ./output/fcast/exposure/csv:/src/output/fcast/exposure/csv
+      - ./output:/src/output  # make all results visible on the host
