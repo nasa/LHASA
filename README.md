@@ -112,34 +112,6 @@ del ref_data.zip
 python pfdf\scripts\make_netrc.py
 ```
 
-#### Docker
-
-To run LHASA with Docker, create the `.netrc` file at the root of the project, with following
-content:
-
-```plaintext
-machine urs.earthdata.nasa.gov login <uid> password <password>
-machine jsimpsonhttps.pps.eosdis.nasa.gov login <email> password <email>
-```
-
-Replace `<uid>`, `<password>` and `<email>` with your login credentials.
-Build the image:
-
-```bash
-docker compose build
-```
-
-Run LHASA with:
-
-```bash
-docker compose run --rm lhasa
-```
-
-> [!NOTE]
-> You can pass arguments to LHASA. For example: `docker compose run --rm lhasa -icd 2 -scd 2 -t 4 -st 10`
-
-For convenience, the resulting files are written to `output/`, which is a volume accessible both on the host machine and the container.
-
 ### Routine operation
 
 Run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desired cadence, e.g. once per day. 
