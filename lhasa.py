@@ -547,41 +547,44 @@ if __name__ == "__main__":
     if args.lead > 2:
         warnings.warn('Only 2 days of forecast data are considered reliable.')
 
-    model = get_model(f'{path}/model.json', args.threads)
+    model = get_model(os.path.join(path, 'model.json'), args.threads)
 
-    static_files = [f'{path}/static/pga.nc4',
-        f'{path}/static/Lithology.nc4',
-        f'{path}/static/Slope.nc4',
-        f'{path}/static/mask.nc4']
+    static_files = [os.path.join(path, 'static', 'pga.nc4'),
+        os.path.join(path, 'static', 'Lithology.nc4'),
+        os.path.join(path, 'static', 'Slope.nc4'),
+        os.path.join(path, 'static', 'mask.nc4')]
     static_variables = xr.open_mfdataset(static_files, parallel=True)
     static_variables = static_variables.sel(
         lat=slice(args.south, args.north), 
         lon=slice(args.west, args.east)
     )
-    p99 = xr.open_dataarray(f'{path}/static/p99.nc4')
+    p99 = xr.open_dataarray(os.path.join(path, 'static', 'p99.nc4'))
     p99 = p99.sel(
         lat=slice(args.south, args.north), 
         lon=slice(args.west, args.east)
     ).load()
     if args.lead > 0:
-        p99geos = xr.open_dataarray(f'{path}/static/p99geos.nc4')
+        p99geos = xr.open_dataarray(os.path.join(path, 'static', 'p99geos.nc4'))
         p99geos = p99geos.sel(
             lat=slice(args.south, args.north), 
             lon=slice(args.west, args.east)
         ).load()
     if args.exposure:
-        exposure_files = [f'{path}/exposure/road_length.nc4', 
-        f'{path}/exposure/population.nc4', f'{path}/exposure/gadm36.nc4']
+        exposure_files = [
+            os.path.join(path, 'exposure', 'road_length.nc4'), 
+            os.path.join(path, 'exposure', 'population.nc4'), 
+            os.path.join(path, 'exposure', 'gadm36.nc4')
+        ]
         assets = xr.open_mfdataset(exposure_files)
         assets = assets.sel(
             lat=slice(args.north, args.south), 
             lon=slice(args.west, args.east)
         )
-        constant_totals = pd.read_csv(f'{path}/exposure/totals.csv', index_col='gadm_fid')
+        constant_totals = pd.read_csv(os.path.join(path, 'exposure', 'totals.csv'), index_col='gadm_fid')
         # Apply a minimum to avoid divide by zero errors
         constant_totals['road_length'] = np.maximum(constant_totals['road_length'], 1e-10)
         constant_totals['population'] = np.maximum(constant_totals['population'], 1e-10)
-        admin_names = pd.read_csv(f'{path}/exposure/admin_names.csv', index_col='gadm_fid')
+        admin_names = pd.read_csv(os.path.join(path, 'exposure', 'admin_names.csv'), index_col='gadm_fid')
     logging.info('opened static variables')
 
     precipitation_start_date = forecast_start_time - pd.DateOffset(3)
