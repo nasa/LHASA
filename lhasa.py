@@ -445,7 +445,7 @@ def smap_cleanup(path: str, cache_days=0, cache_end_time=None):
         excess.map(os.remove)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='LHASA 2.0 global landslide forecast')
+    parser = argparse.ArgumentParser(description='LHASA 2.1 global landslide forecast')
     parser.add_argument('-v', '--version', action='version', 
         version='LHASA version 2.1')
     parser.add_argument('-p', '--path', default=os.getcwd(), 
@@ -488,8 +488,8 @@ if __name__ == "__main__":
         help='maximum longitude (WGS84)')
     parser.add_argument('-W', '--west', type=float,  default=-180.0, 
         help='minimum longitude (WGS84)')
-    parser.add_argument('-sv', '--smap_version', default='7031',
-        help='SMAP L4 major and minor version, e.g. 7031')
+    parser.add_argument('-sv', '--smap_version', default='8011',
+        help='SMAP L4 major and minor version, e.g. 8011')
     parser.add_argument('-iv', '--imerg_version', default='07B',
         help='IMERG version, e.g. 07B')
     parser.add_argument(
