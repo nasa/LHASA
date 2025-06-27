@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - SMAP L4 upgraded to v8.
 
+### Removed
+- Support for OpenDAP access to SMAP.
+
+### Fixed
+
+- Added initialization to exposure forecast file names to avoid overwriting.
+
 ## [2.1] - 2024-9-3
 
 ### Added

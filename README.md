@@ -6,7 +6,7 @@ LHASA was created at Goddard Space Flight Center to identify the potential for r
 
 See the [Changelog](https://github.com/nasa/LHASA/blob/master/CHANGELOG.md)
 
-## LHASA 2.1
+## LHASA 2.1.1
 
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
 
@@ -23,9 +23,10 @@ LHASA requires several large data files, but not all data may be needed by all u
 
 After cloning this repository, some setup is required prior to running LHASA. The following commands have been tested in a linux environment.
 
+    cd LHASA
     # Set up python environment
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    sh Miniconda3-latest-Linux-x86_64.sh
+    wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh
+    sh Miniforge3-Linux-x86_64.sh
     conda env create -f lhasa.yml
 
     # Manage Earthdata connection
@@ -46,7 +47,6 @@ After cloning this repository, some setup is required prior to running LHASA. Th
     mkdir -p fcast/hazard/tif
     mkdir -p fcast/exposure/csv
     mkdir imerg
-    mkdir smap
 
     # Obtain required data files
     wget https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip &&
@@ -70,8 +70,8 @@ On a Windows machine, use following commands within a *command prompt*:
 
 ```
 @REM Set up python environment
-curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe
-start /wait Miniconda3-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
+curl -O https://github.com/conda-forge/miniforge/releases/download/25.3.0-1/Miniforge3-25.3.0-1-Windows-x86_64.exe
+start /wait Miniforge3-25.3.0-1-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
 %UserProfile%\Miniconda3\Scripts\conda.exe env create -f lhasa.yml
 
 @REM Manage Earthdata connection
@@ -93,7 +93,6 @@ mkdir nrt\exposure\csv
 mkdir fcast\hazard\tif
 mkdir fcast\exposure\csv
 mkdir imerg
-mkdir smap
 
 @REM Obtain required data files
 curl -O https://gpm.nasa.gov/sites/default/files/data/landslides/static.zip && ^
