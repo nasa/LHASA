@@ -624,7 +624,7 @@ if __name__ == "__main__":
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
         forecast_start_time = forecast_start_time.floor("h")
         if args.run_time:
-            run_time = pd.Timestamp(args.run_time).floor("6h")
+            run_time = pd.Timestamp(args.run_time).floor("12h")
             if run_time > forecast_start_time:
                 raise ValueError("Forecast must start later than GEOS-FP run time")
         else:
@@ -707,7 +707,7 @@ if __name__ == "__main__":
     imerg = xr.concat([imerg_late, imerg_early], dim="time")
 
     if args.lead > 0:
-        geos_run_times = [run_time, run_time - pd.Timedelta(hours=6)]
+        geos_run_times = [run_time, run_time - pd.Timedelta(hours=12)]
         geos_runs = [get_GEOS_run(t) for t in geos_run_times]
 
         processed_hours = geos_runs[0]["time"].where(False)  # empty array
