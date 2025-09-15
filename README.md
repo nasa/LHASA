@@ -147,9 +147,7 @@ Various forms of documentation are also needed. For example, a guide to installa
 
 ## LHASA 1.1
 
-Although version 2 surpasses version 1 in accuracy and features, some users may prefer the simplicity of a single heuristic decision tree. Therefore, LHASA 1.1 is still running and its output can be seen at https://pmm.nasa.gov/precip-apps.
-
-Legacy code for LHASA version 1.1.1 is available [here](https://github.com/nasa/LHASA/releases/tag/v1.1.1). The R scripts are written to be easily understood, executed, and modified by potential users of this research.
+Although version 2 surpasses version 1 in accuracy and features, some users may prefer the simplicity of a single heuristic decision tree. Therefore, legacy code for LHASA version 1.1.1 is available [here](https://github.com/nasa/LHASA/releases/tag/v1.1.1). The R scripts are written to be easily understood, executed, and modified by potential users of this research.
 
 Code for LHASA 1.0 is available in python at https://github.com/vightel/ojo-processing. 
 
