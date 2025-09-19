@@ -778,7 +778,7 @@ if __name__ == "__main__":
         ]
         assets = xr.open_mfdataset(exposure_files)
         assets = assets.sel(
-            lat=slice(bbox[1], bbox[3]),
+            lat=slice(bbox[3], bbox[1]),
             lon=slice(bbox[0], bbox[2]),
         )
         constant_totals = pd.read_csv(
