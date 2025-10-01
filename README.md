@@ -117,13 +117,13 @@ Run [lhasa.sh](https://github.com/nasa/LHASA/blob/master/lhasa.sh) at the desire
 
 ### Citation
 
+Stanley T. A., J. R. Sutton, R. S. Vershel, P. M. Amatya. 2025. "Better Satellite Precipitation Algorithms Slightly Improved Landslide Hazard Assessment." Journal of Applied Meteorology and Climatology 64 (10): 1379-1394 [10.1175/jamc-d-25-0021.1](https://doi.org/10.1175/JAMC-D-25-0021.1)
+
 Orland, E., D. Kirschbaum, and T. Stanley. 2022. "A Scalable Framework for Post Fire Debris Flow Hazard Assessment Using Satellite Precipitation Data." Geophysical Research Letters, 49 (18): [10.1029/2022gl099850](https://doi.org/10.1029/2022GL099850)
 
 Khan, S., D. B. Kirschbaum, T. A. Stanley, P. M. Amatya, and R. A. Emberson. 2022. "Global Landslide Forecasting System for Hazard Assessment and Situational Awareness." Frontiers in Earth Science, 10: [10.3389/feart.2022.878996](https://doi.org/10.3389/feart.2022.878)
 
 Emberson, R., D. Kirschbaum, and T. Stanley. 2020. "New global characterisation of landslide exposure." Natural Hazards and Earth System Sciences, 20 (12): 3413-3424 [10.5194/nhess-20-3413-2020](https://doi.org/10.5194/nhess-20-3413-2020)
-
-Stanley, T. A., D. B. Kirschbaum, G. Benz, et al. 2021. "Data-Driven Landslide Nowcasting at the Global Scale." Frontiers in Earth Science, 9: [10.3389/feart.2021.640043](https://doi.org/10.3389/feart.2021.640043)
 
 ### Model training
 
