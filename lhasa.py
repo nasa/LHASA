@@ -458,7 +458,7 @@ def save_tiff(data_array: xr.DataArray, file_path: str):
     data_array.rio.write_crs(4326, inplace=True)
     data_array = data_array.rename(lat="latitude", lon="longitude")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    data_array.rio.to_raster(file_path, compress="zstd")
+    data_array.rio.to_raster(file_path, compress="zstd", driver="COG")
 
 
 def get_model(file_path, threads=1):
