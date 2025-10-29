@@ -733,11 +733,12 @@ if __name__ == "__main__":
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
         forecast_start_time = forecast_start_time.floor("h")
         if args.run_time:
-            run_time = pd.Timestamp(args.run_time).floor("12h")
+            run_time = pd.Timestamp(args.run_time)
             if run_time > forecast_start_time:
                 raise ValueError("Forecast must start later than GEOS-FP run time")
         else:
             run_time = get_latest_GEOS_run_time(forecast_start_time)
+        run_time = run_time.floor("12h")
         if not run_time:
             warnings.warn(
                 f"No GEOS-FP run is available for {forecast_start_time}.",
