@@ -357,6 +357,7 @@ def regrid(variable, template, method=Resampling.average, threads=1):
         template,
         resampling=method,
         num_threads=threads,
+        nodata=np.nan,
     )
     renamed = regridded.rename(y="lat", x="lon")
     return renamed
