@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Empty exposure files from 2.1.1
 - IMERG date error from v2.1.1
+- No-data grid cells from regridding
 
 ## [2.1.1] 2025-9-15
 
