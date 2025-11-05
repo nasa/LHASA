@@ -40,9 +40,9 @@ NO_DATA = -9999.0
 PPS_URL = "https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/"
 
 
-def build_imerg_url(start_time, run="E", version="07B", liquid=True):
-    """Build URL to IMERG data"""
-    start_time = start_time.ceil("3h") - pd.Timedelta(minutes=30)
+def build_imerg_url(start_time, run="E", version="07B", liquid=True) -> str:
+    """Build URL to IMERG GIS daily data"""
+    start_time = start_time.ceil("3h") + pd.Timedelta(hours=23, minutes=30)
     end = start_time + pd.Timedelta(minutes=29, seconds=59)
     if liquid:
         extension = ".zip"
@@ -61,7 +61,7 @@ def build_imerg_url(start_time, run="E", version="07B", liquid=True):
     return url
 
 
-def download_imerg(url, path="./imerg"):
+def download_imerg(url, path="./imerg") -> str:
     """Downloads and saves IMERG file"""
     file_name = os.path.basename(url)
     extension = os.path.splitext(url)[1]
@@ -224,7 +224,7 @@ def get_IMERG_precipitation(
     cache_dir="./imerg",
     latitudes=slice(-60, 60),
     longitudes=slice(-180, 180),
-):
+) -> xr.DataArray:
     """Opens IMERG data"""
     if end_time <= start_time:
         raise ValueError("End time must be later than start time")
@@ -367,7 +367,7 @@ def apply_mask(variable, mask):
     return variable.values[mask.values]
 
 
-def fill_array(prediction, mask, start_time):
+def fill_array(prediction, mask, start_time) -> xr.DataArray:
     """Convert numpy to xarray format with time and location"""
     p_values = mask.where(mask).values
     p_values[mask.values] = prediction
@@ -380,7 +380,7 @@ def fill_array(prediction, mask, start_time):
     return filled_array
 
 
-def add_metadata(data_set: xr.Dataset, run_mode="nrt"):
+def add_metadata(data_set: xr.Dataset, run_mode="nrt") -> xr.Dataset:
     """Adds metadata for compliance with CF and GES-DISC standards"""
     now = pd.Timestamp.now().strftime("%Y-%m-%dT%H:%M:%S:%fZ")
     data_set.attrs["ProductionDateTime"] = now
@@ -436,9 +436,10 @@ def add_metadata(data_set: xr.Dataset, run_mode="nrt"):
     data_set["time"].attrs["long_name"] = "Time (UTC)"
     data_set["time"].attrs["standard_name"] = "time"
     data_set["p_landslide"].attrs["long_name"] = "Probability of Landslide Occurrence"
+    return data_set
 
 
-def save_nc(data_set: xr.Dataset, file_path: str, run_mode="nrt"):
+def save_nc(data_set: xr.Dataset, file_path: str, run_mode="nrt") -> str:
     """Saves prediction in netcdf format"""
     add_metadata(data_set, run_mode=run_mode)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -450,18 +451,20 @@ def save_nc(data_set: xr.Dataset, file_path: str, run_mode="nrt"):
             "lon": {"zlib": False, "_FillValue": None},
         },
     )
+    return file_path
 
 
-def save_tiff(data_array: xr.DataArray, file_path: str):
+def save_tiff(data_array: xr.DataArray, file_path: str) -> str:
     """Saves prediction in geotiff format"""
     data_array.rio.write_nodata(NO_DATA, inplace=True)
     data_array.rio.write_crs(4326, inplace=True)
     data_array = data_array.rename(lat="latitude", lon="longitude")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    data_array.rio.to_raster(file_path, compress="zstd")
+    data_array.rio.to_raster(file_path, compress="zstd", driver="COG")
+    return file_path
 
 
-def get_model(file_path, threads=1):
+def get_model(file_path, threads=1) -> xgb.Booster:
     """Open trained model"""
     model = xgb.Booster()
     model.load_model(file_path)
@@ -474,7 +477,7 @@ def expose(
     variables: xr.Dataset,
     thresholds={"l": 0.1, "m": 0.5, "h": 0.9},
     selection=["population", "road_length"],
-):
+) -> xr.Dataset:
     """Totals exposed assets at flexible hazard thresholds"""
     variables = variables.copy()  # To avoid mutating the assets dataset
     for k in thresholds.keys():
@@ -733,11 +736,12 @@ if __name__ == "__main__":
         # GEOS is hourly data, so we may have to discard the last half hour of IMERG
         forecast_start_time = forecast_start_time.floor("h")
         if args.run_time:
-            run_time = pd.Timestamp(args.run_time).floor("12h")
+            run_time = pd.Timestamp(args.run_time)
             if run_time > forecast_start_time:
                 raise ValueError("Forecast must start later than GEOS-FP run time")
         else:
             run_time = get_latest_GEOS_run_time(forecast_start_time)
+        run_time = run_time.floor("12h")
         if not run_time:
             warnings.warn(
                 f"No GEOS-FP run is available for {forecast_start_time}.",
