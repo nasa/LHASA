@@ -456,12 +456,17 @@ def save_nc(data_set: xr.Dataset, file_path: str, run_mode="nrt") -> str:
 
 
 def save_tiff(data_array: xr.DataArray, file_path: str) -> str:
-    """Saves prediction in geotiff format"""
+    """Saves prediction in cloud-optimized geotiff format"""
     data_array.rio.write_nodata(NO_DATA, inplace=True)
     data_array.rio.write_crs(4326, inplace=True)
     data_array = data_array.rename(lat="latitude", lon="longitude")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    data_array.rio.to_raster(file_path, compress="zstd", driver="COG")
+    data_array.rio.to_raster(
+        file_path,
+        driver="COG",
+        compress="zstd",
+        overview_resampling=Resampling.nearest,
+    )
     return file_path
 
 
