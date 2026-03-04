@@ -40,7 +40,7 @@ NO_DATA = -9999.0
 PPS_URL = "https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/"
 
 
-def build_imerg_url(start_time, run="E", version="07B", liquid=True) -> str:
+def build_imerg_url(start_time, run="E", version="07C", liquid=True) -> str:
     """Build URL to IMERG GIS daily data"""
     start_time = start_time.ceil("3h") + pd.Timedelta(hours=23, minutes=30)
     end = start_time + pd.Timedelta(minutes=29, seconds=59)
@@ -85,7 +85,7 @@ def download_imerg(url, path="./imerg") -> str:
     return file_path
 
 
-def get_latest_imerg_time(run="E", version="07B"):
+def get_latest_imerg_time(run="E", version="07C"):
     """Returns a pandas time stamp representing the latest available data"""
     now = pd.Timestamp.now(tz="UTC").ceil("3h") + pd.Timedelta(minutes=30)
     for i in range(2, 17):
@@ -220,7 +220,7 @@ def get_IMERG_precipitation(
     liquid=True,
     load=True,
     run="E",
-    version="07B",
+    version="07C",
     cache_dir="./imerg",
     latitudes=slice(-60, 60),
     longitudes=slice(-180, 180),
@@ -657,7 +657,7 @@ if __name__ == "__main__":
         help="SMAP L4 major and minor version, e.g. 8011",
     )
     parser.add_argument(
-        "-iv", "--imerg_version", default="07B", help="IMERG version, e.g. 07B"
+        "-iv", "--imerg_version", default="07C", help="IMERG version, e.g. 07C"
     )
     parser.add_argument(
         "-icd",
