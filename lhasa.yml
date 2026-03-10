@@ -11,3 +11,4 @@ dependencies:
   - certifi
   - openssl
   - netcdf4=1.6
+  - pandas=2.3
