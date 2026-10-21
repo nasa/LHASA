@@ -653,8 +653,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-sv",
         "--smap_version",
-        default="8011",
-        help="SMAP L4 major and minor version, e.g. 8011",
+        default="8013",
+        help="SMAP L4 major and minor version, e.g. 8013",
     )
     parser.add_argument(
         "-iv", "--imerg_version", default="07C", help="IMERG version, e.g. 07C"
@@ -862,7 +862,7 @@ if __name__ == "__main__":
         geos = xr.concat(selected_geos_precip, dim="time").sortby("time")
         geos_daily = (
             geos.resample(
-                {"time": "24H"}, offset=pd.Timedelta(f"{forecast_start_time.hour}h")
+                {"time": "24h"}, offset=pd.Timedelta(f"{forecast_start_time.hour}h")
             )
             .sum()
             .load()
