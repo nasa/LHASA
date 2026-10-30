@@ -11,7 +11,7 @@ See the [Changelog](https://github.com/nasa/LHASA/blob/master/CHANGELOG.md)
 LHASA version 2 adopts machine learning to estimate the probability of landslide occurrence at a 30-arcsecond (~1 km) daily resolution. In addition, it estimates the potential exposure of human population and roads to landslide hazard and maps the basins likely to experience post-fire debris flows. 
 
 ### Real-time data availability
-The latest predictions can be downloaded from https://maps.nccs.nasa.gov/download/landslides. It can also be accessed as an ArcGIS web map at https://landslides.nasa.gov/viewer. NASA provides these data on a best-effort basis, typically twice each day, but with frequent server downtime. Users requiring a fully operational system are encouraged to clone this repository and run LHASA at the desired cadence.
+The latest predictions can be downloaded from https://portal.nccs.nasa.gov/datashare/landslides/. It can also be accessed as an ArcGIS web map at https://landslides.nasa.gov/viewer. NASA provides these data on a best-effort basis, typically twice each day, but with frequent server downtime. Users requiring a fully operational system are encouraged to clone this repository and run LHASA at the desired cadence.
 
 ### Data files
 
@@ -141,7 +141,7 @@ New landslide reports can be made through [Landslide Reporter](https://landslide
 
 Bug reports can be made through GitHub issues, while bug fixes and feature updates are welcome through pull requests. However, it's best to contact NASA prior to embarking on a major feature, as some improvements may lie outside the scope of this project. 
 
-Various forms of documentation are also needed. For example, a guide to installation of LHASA on Windows has already been requested. 
+Going beyond bugs, general feedback is welcome on LHASA,  including examples of its use and features that would make it more useful. 
 
 ---
 
